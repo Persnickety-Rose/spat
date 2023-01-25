@@ -52,8 +52,8 @@ else:
     myLogger.setLevel(logging.INFO)
     l_level = "INFO"
 
-# Get full path to log file    
-testfilename =   os.environ["pyTestFile"].strip(".py").replace('/','-') 
+# Get full path to log file
+testfilename =   os.environ["pyTestFile"].strip(".py").replace('/','-')
 log_file_name = "logs/{time}-{filename}.log".format(time=time, filename=testfilename)
 
 log_handler = logging.FileHandler(log_file_name)
@@ -75,7 +75,7 @@ if os.getenv("pyTestVars"):
       myLogger.debug("The optional variables CSV file is: " + varsFile)
       get_additional_var()
 
-# finish the log header 
+# finish the log header
 formatter1 = logging.Formatter('Log file created at: %(asctime)s \nThe test file is: ' +  os.environ["pyTestFile"]  + '\nThe log level is: ' + l_level)
 log_handler.setFormatter(formatter1)
 myLogger.info("")
@@ -98,7 +98,7 @@ def newName():
   """
     now = datetime.datetime.now()
     nowtime = now.strftime("%f")
-    returnString = "mfp-" + str(nowtime)
+    returnString = "JP-" + str(nowtime)
     return returnString
 
 
