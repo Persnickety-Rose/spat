@@ -10,13 +10,13 @@
 #########################
 #    Imports & Setup    #
 #########################
-import py.test
+import pytest
 import inspect
 from random import choice
 from string import ascii_letters
 import logging
 import datetime
-from random_words import RandomWords
+from random_word import RandomWords
 import json
 from apis import WP_APIs
 import os
@@ -40,7 +40,7 @@ myLogger = logging.getLogger('myLogger')
 myLogger.setLevel(logging.DEBUG)
 
 # Set environment to test in
-# NOTE: must be done after import setup 
+# NOTE: must be done after import setup
 env = str(os.getenv("envURL"))
 
 
@@ -58,10 +58,10 @@ def test_tmp():
     # Trying to figure out the issue with my assertTest function
     AssertTest(testObject=test, assertTest = str(len(test.content)) + " > 10",
                        message="There was no data sent back from the call")
-    
+
     myLogger.info("This test passed\n")
 
-    
+
 def test_Get_Posts():
     test_name = inspect.stack()[0][3]
     myLogger.info("Test " + test_name + " is starting")
@@ -69,9 +69,9 @@ def test_Get_Posts():
     test.CallAPI()
     assert (len(test.content) > 0)
     test.Call_Succeeded(test)
-    myLogger.info("This test passed\n")    
+    myLogger.info("This test passed\n")
 
-    
+
 def test_Get_Posts_Call_Succeeded():
     test_name = inspect.stack()[0][3]
     myLogger.info("Test " + test_name + " is starting")
@@ -80,8 +80,8 @@ def test_Get_Posts_Call_Succeeded():
     assert (len(test.content) > 0)
     test.Call_Succeeded(test)
     myLogger.info("This test passed\n")
-    
-    
+
+
 def test_Get_Posts_Call_Failed():
     test_name = inspect.stack()[0][3]
     myLogger.info("Test " + test_name + " is starting")
@@ -90,8 +90,8 @@ def test_Get_Posts_Call_Failed():
     assert (len(test.content) > 0)
     test.Call_Failed(test, return_code="404", returns_content='yes')
     myLogger.info("This test passed\n")
-    
-    
+
+
 def test_Make_Good_New_Post(capsys):
     test_name = inspect.stack()[0][3]
     myLogger.info("Test " + test_name + " is starting")

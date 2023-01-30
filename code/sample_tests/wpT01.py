@@ -10,7 +10,7 @@
 #########################
 #    Imports & Setup    #
 #########################
-import py.test
+import pytest
 import inspect
 import logging
 import datetime
@@ -35,7 +35,7 @@ myLogger = logging.getLogger('myLogger')
 myLogger.setLevel(logging.DEBUG)
 
 # Set environment to test in
-# NOTE: must be done after import setup 
+# NOTE: must be done after import setup
 env = str(os.getenv("envURL"))
 
 

@@ -10,7 +10,7 @@
 #########################
 #     Setup stuff       #
 #########################
-import py.test
+import pytest
 
 # import local code
 import repackage
@@ -25,13 +25,13 @@ default_header = ""
 ############################################################
 class GetAllUsers(API):
     """
-    This class uses the 'user' endpoint to get a list of all of the users 
+    This class uses the 'user' endpoint to get a list of all of the users
     """
     def __init__(self, user, password, env):
         """
         :param user: --REQUIRED-- the user to log in with
         :param password: --REQUIRED-- the password to log in with
-        :param env: --REQUIRED-- the environment you are testing it 
+        :param env: --REQUIRED-- the environment you are testing it
         """
         endpoint = "/wp-json/wp/v2/users"
         self.address = env + endpoint
@@ -42,7 +42,7 @@ class GetAllUsers(API):
         self.header = default_header
         self.params = ""
 
-        
+
 class GetUser(API):
     """
     This Class gets the current user info
@@ -51,7 +51,7 @@ class GetUser(API):
         """
         :param user: --REQUIRED-- the user to log in with
         :param password: --REQUIRED-- the password to log in with
-        :param env: --REQUIRED-- the environment you are testing it       
+        :param env: --REQUIRED-- the environment you are testing it
         """
         endpoint = "/wp-json/wp/v2/users/me"
         self.address = env + endpoint
@@ -62,9 +62,9 @@ class GetUser(API):
         self.header = default_header
         self.params = ""
 
-        
+
 class GetAllPosts(API):
-  
+
     def __init__(self, env):
         endpoint = "/wp-json/wp/v2/posts"
         self.address = env + endpoint
@@ -74,7 +74,7 @@ class GetAllPosts(API):
         self.data = ""
         self.header = default_header
         self.params = ""
-        
+
 
 class GetPosts(API):
 
@@ -87,8 +87,8 @@ class GetPosts(API):
         self.data = ""
         self.header = default_header
         self.params = ""
-        
-        
+
+
 class GetPosts_bad(API):
 
     def __init__(self, env):
@@ -104,8 +104,8 @@ class GetPosts_bad(API):
         self.data = ""
         self.header = default_header
         self.params = ""
-       
-        
+
+
 class PostNewPost(API):
 
     def __init__(self, user, data, env, password="password"):
@@ -118,9 +118,9 @@ class PostNewPost(API):
         self.header = default_header
         self.params = ""
 
-                
+
 class GetAllCategories(API):
-  
+
 
     def __init__(self, env):
         endpoint = "/wp-json/wp/v2/categories"
@@ -130,9 +130,9 @@ class GetAllCategories(API):
         self.user = ""
         self.data = ""
         self.header = default_header
-        self.params = ""        
+        self.params = ""
 
-                
+
 class PostNewPage(API):
 
     def __init__(self, user, data, env, password="password"):
@@ -145,7 +145,7 @@ class PostNewPage(API):
         self.header = default_header
         self.params = ""
 
-              
+
 class PostUpdatePage(API):
 
     def __init__(self, user, page_id, data, env, password="password"):
@@ -157,8 +157,8 @@ class PostUpdatePage(API):
         self.data = data
         self.header = default_header
         self.params = ""
-        
-               
+
+
 class GetPages(API):
 
     def __init__(self, env, data=''):
@@ -169,8 +169,8 @@ class GetPages(API):
         self.password = ""
         self.data = data
         self.header = default_header
-        self.params = ""       
-         
-        
+        self.params = ""
+
+
 # End of File
-# ==============================================================================        
+# ==============================================================================
