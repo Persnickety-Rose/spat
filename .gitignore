@@ -12,3 +12,8 @@
 # git files #
 #############
 .git/
+
+
+# Package files #
+#################
+dist/
