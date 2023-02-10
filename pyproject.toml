@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "spat4apitesting"
-version = "0.0.2"
+version = "0.0.207"
 authors = [
   { name="Jasmine-Arabella Post", email="jasmine@Jasmine-Arabella.tech" },
 ]

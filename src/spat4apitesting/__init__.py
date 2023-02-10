@@ -4,8 +4,10 @@
 # Date Started: 20230209                                                                                               #
 ########################################################################################################################
 
-from pyrest import API_Call
-import  atr 
+print("this is my init file")
+
+from .API_Call import API
+from  .atr import *
 
 
 
@@ -16,4 +18,4 @@ import  atr
 
 
 # End of File
-# ==============================================================================
+#

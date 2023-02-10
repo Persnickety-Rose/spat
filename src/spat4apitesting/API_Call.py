@@ -4,7 +4,7 @@
 # Author: Jasmine-Arabella Post                                                                                        #
 # Date Started: 20160922                                                                                              #
 ########################################################################################################################
-
+print("this is API Call")
 
 #########################
 #    Setup Stuff      #
@@ -13,8 +13,8 @@ import requests
 import json
 import re
 import logging
-from . util import *
-
+from .util import *
+# import util
 
 # the following is to prevent warnings about insecure connection because
 # we don't have proper certs on our interal servers
@@ -89,7 +89,7 @@ class API(object):
             # raise  AssertionError
 
 
-        
+
         #   Make the API call
         #====================
 
@@ -135,7 +135,7 @@ class API(object):
                 callLogger.error("The API call returned HTML")
                 return "FAILED"
 
-        
+
         #  set some attributes
         #=====================
         # list of attributes
@@ -167,7 +167,7 @@ class API(object):
         :param return_code: the return code expected.    Default is 200
         :param returns_content: The return data much contain content.    Default yes
         """
-      
+
         # some logging
         callLogger.info("The status is: " + str(self.status))
 
@@ -188,7 +188,7 @@ class API(object):
     def Call_Failed(self, testObject, return_code='400', returns_content='no'):
         """
         This method does a basic verification that the API call failed
-       
+
         :param testObject: --REQUIRED-- the object created by the test
         :param return_code: the return code expected.    Default is 400
         :param returns_content: The return data much contain content.    Default no
@@ -224,7 +224,7 @@ class API(object):
         global info
         json1 = json.loads(info.content)
         print( json.dumps(json1, indent=4, sort_keys=True))
-        
-        
+
+
 # End of File
 # ==============================================================================
