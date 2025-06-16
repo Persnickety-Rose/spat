@@ -13,7 +13,7 @@ import os
 import csv
 import datetime
 import logging
-from . util import *
+from .util import AssertTest
 
 
 ########################################
@@ -108,6 +108,10 @@ myLogger.info("The log file is: " + log_file_name)
 # set envrionment variabless
 get_env_var()
 myLogger.debug("The environment variables are: " + str(os.environ))
+
+# Set default test file name if not provided
+if "pyTestFile" not in os.environ:
+    os.environ["pyTestFile"] = "default_test"
 
 # see if we have optional varialbes and add them
 if os.getenv("pyTestVars"):

@@ -13,8 +13,18 @@
 import pytest
 
 # import local code
-import repackage
-repackage.up(2)
+# import repackage
+# repackage.up(2)
+
+import sys
+import os
+
+# Get the absolute path two levels up from the current file
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+# Add that directory to sys.path
+sys.path.insert(0, parent_dir)
+
 from pyrest.API_Call import API
 
 default_header = ""
