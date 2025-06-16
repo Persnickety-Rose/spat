@@ -26,6 +26,7 @@ def get_env_var():
   # get the current env that is bing tested
   if os.getenv("pyTestEnv"):
       envFile = os.environ["pyTestEnv"]
+      print("The env CSV file is: " + envFile)
       myLogger.debug("The env CSV file is: " + envFile)
   else:
       msg =  "Could not find the environment file parameter.  There for tests can not be run."
@@ -90,8 +91,9 @@ else:
     l_level = "INFO"
 
 # Get full path to log file    
-testfilename =   os.environ["pyTestFile"].strip(".py").replace('/','-') 
-log_file_name = "logs/{time}-{filename}.log".format(time=time, filename=testfilename)
+# testfilename =   os.environ["pyTestFile"].strip(".py").replace('/','-') 
+testfilename = "test_file"
+log_file_name = "code/logs/{time}-{filename}.log".format(time=time, filename=testfilename)
 
 log_handler = logging.FileHandler(log_file_name)
 log_handler.setLevel(logging.NOTSET)
