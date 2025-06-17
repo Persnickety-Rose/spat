@@ -1,3 +1,3 @@
 test,test
 envURL,http://localhost:8888
-pyTestFile,wpT02.py
+pyTestFile,test_wpT02.py
