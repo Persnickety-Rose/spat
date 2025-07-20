@@ -34,6 +34,8 @@ def get_env_var():
       print(msg)
       exit()
 
+  # get the full path to envFile
+  envFile = os.path.abspath(envFile)
   # read csv file into env. variables 
   readCsvFile = csv.reader(open(envFile, 'r'))
   varDict = {}
@@ -92,8 +94,16 @@ else:
 
 # Get full path to log file    
 # testfilename =   os.environ["pyTestFile"].strip(".py").replace('/','-') 
-testfilename = "test_file"
-log_file_name = "code/logs/{time}-{filename}.log".format(time=time, filename=testfilename)
+test_file_name = "test_file"
+cwd = os.getcwd()
+log_file_name = "{cwd}/logs/{time}-{filename}.log".format(cwd=cwd, time=time, filename=test_file_name)
+log_dir = os.path.dirname(log_file_name)
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+if not os.path.isfile(log_file_name):
+    # Create the file if it does not exist
+    with open(log_file_name, 'w') as f:
+        pass
 
 log_handler = logging.FileHandler(log_file_name)
 log_handler.setLevel(logging.NOTSET)
