@@ -10,7 +10,7 @@
 #########################
 #    Imports & Setup    #
 #########################
-import pytest
+# import pytest
 import inspect
 import logging
 import datetime
@@ -18,8 +18,19 @@ from apis import WP_APIs
 import os
 
 # imoports from local files
-import repackage
-repackage.up(1)
+# import repackage
+# repackage.up(1)
+
+import sys
+import os
+
+# Get the absolute path two levels up from the current file
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+# Add that directory to sys.path
+sys.path.insert(0, parent_dir)
+
+
 from pyrest.util import *
 
 # Set time stamp

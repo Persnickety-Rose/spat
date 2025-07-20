@@ -13,17 +13,17 @@ import requests
 import json
 import re
 import logging
+import ssl
 from . util import *
-
-
-# the following is to prevent warnings about insecure connection because
-# we don't have proper certs on our interal servers
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # setting up logging
 callLogger = logging.getLogger('myLogger')
 callLogger.setLevel(logging.NOTSET)
+
+# Create a custom SSL context with secure defaults
+ssl_context = ssl.create_default_context()
+ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+ssl_context.verify_mode = ssl.CERT_REQUIRED
 
 
 ############################################################
@@ -35,7 +35,7 @@ class API(object):
     and has other methods for analyzing the results.
     """
 
-    def __init__(self, address, data="", header="", method="GET", params="", user="", password=""):
+    def __init__(self, address, data="", header="", method="GET", params="", user="", password="", verify_ssl=True, cert_path=None):
         """
         :param address: --REQUIRED-- The full url being called.
         :param data: Any and all data that needs to be sent as part of the payload
@@ -44,6 +44,8 @@ class API(object):
         :param params: Any URL parameters that need to be passed
         :param user: The log in user if needed
         :param password: The log in users password if needed
+        :param verify_ssl: Whether to verify SSL certificates (default: True)
+        :param cert_path: Path to custom CA certificate bundle (default: None)
         """
         self.address = address
         self.params = params
@@ -52,6 +54,8 @@ class API(object):
         self.user = user
         self.password = password
         self.data = data
+        self.verify_ssl = verify_ssl
+        self.cert_path = cert_path
 
     ########################################
     #          Method to call API          #
@@ -94,7 +98,12 @@ class API(object):
         #====================
 
         # Setup request parameters
-        request_params = {"method": self.method, "url": self.address}
+        request_params = {
+            "method": self.method,
+            "url": self.address,
+            "verify": self.cert_path if self.cert_path else self.verify_ssl
+        }
+        
         if self.header != "":
             request_params["headers"] = self.header
 
@@ -108,12 +117,14 @@ class API(object):
         if self.user:
             try:
                 info = requests.request(auth=(self.user, self.password), **request_params)
-            except:
+            except requests.RequestException as e:
+                callLogger.error(f"SSL/TLS Error: {str(e)}")
                 logFailedTest()
         else:
             try:
                 info = requests.request(**request_params)
-            except:
+            except requests.RequestException as e:
+                callLogger.error(f"SSL/TLS Error: {str(e)}")
                 logFailedTest()
 
         # for debug what was sent
@@ -147,7 +158,7 @@ class API(object):
             for atrib in listAttrib:
                 try:
                     exec(atrib) in globals(), locals()
-                except:
+                except (AttributeError, ValueError, TypeError):
                     callLogger.error("Failed to create attribute: " + atrib)
                     pass
             returnMessage = self.status

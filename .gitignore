@@ -1,0 +1,7 @@
+.idea/
+code/logs/
+code/sample_tests/logs/
+logs/
+__pycache__/
+code/logs/
+code/pyrest/__pycache__/

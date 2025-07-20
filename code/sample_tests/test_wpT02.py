@@ -10,7 +10,7 @@
 #########################
 #    Imports & Setup    #
 #########################
-import pytest
+# import pytest
 import inspect
 from random import choice
 from string import ascii_letters
@@ -142,8 +142,9 @@ def test_Make_Good_New_Post_2(capsys):
     test_name = inspect.stack()[0][3]
     myLogger.info("Test " + test_name + " is starting")
     post_title = 'There are ' + number_name + ' cows'
-    rWords = RandomWords()
-    content = ' '.join(rWords.random_word() for i in range(600))
+    words = RandomWords()
+    rWords = words.get_random_word()
+    content = ' '.join(rWords for i in range(600))
     data = {'status': 'draft', 'Content-Type': 'application/x-www-form-urlencoded'}
     data['title'] = post_title
     data['content_raw'] = content
