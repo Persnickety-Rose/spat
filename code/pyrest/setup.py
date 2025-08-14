@@ -13,7 +13,7 @@ import os
 import csv
 import datetime
 import logging
-from . util import *
+from .util import AssertTest
 
 
 ########################################
@@ -26,6 +26,7 @@ def get_env_var():
   # get the current env that is bing tested
   if os.getenv("pyTestEnv"):
       envFile = os.environ["pyTestEnv"]
+      print("The env CSV file is: " + envFile)
       myLogger.debug("The env CSV file is: " + envFile)
   else:
       msg =  "Could not find the environment file parameter.  There for tests can not be run."
@@ -33,6 +34,8 @@ def get_env_var():
       print(msg)
       exit()
 
+  # get the full path to envFile
+  envFile = os.path.abspath(envFile)
   # read csv file into env. variables 
   readCsvFile = csv.reader(open(envFile, 'r'))
   varDict = {}
@@ -90,8 +93,17 @@ else:
     l_level = "INFO"
 
 # Get full path to log file    
-testfilename =   os.environ["pyTestFile"].strip(".py").replace('/','-') 
-log_file_name = "logs/{time}-{filename}.log".format(time=time, filename=testfilename)
+# testfilename =   os.environ["pyTestFile"].strip(".py").replace('/','-') 
+test_file_name = "test_file"
+cwd = os.getcwd()
+log_file_name = "{cwd}/logs/{time}-{filename}.log".format(cwd=cwd, time=time, filename=test_file_name)
+log_dir = os.path.dirname(log_file_name)
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+if not os.path.isfile(log_file_name):
+    # Create the file if it does not exist
+    with open(log_file_name, 'w') as f:
+        pass
 
 log_handler = logging.FileHandler(log_file_name)
 log_handler.setLevel(logging.NOTSET)
@@ -108,6 +120,10 @@ myLogger.info("The log file is: " + log_file_name)
 # set envrionment variabless
 get_env_var()
 myLogger.debug("The environment variables are: " + str(os.environ))
+
+# Set default test file name if not provided
+if "pyTestFile" not in os.environ:
+    os.environ["pyTestFile"] = "default_test"
 
 # see if we have optional varialbes and add them
 if os.getenv("pyTestVars"):
