@@ -5,3 +5,9 @@ logs/
 __pycache__/
 code/logs/
 code/pyrest/__pycache__/
+
+# Log files
+*.log
+
+# Python compiled files
+*.pyc
