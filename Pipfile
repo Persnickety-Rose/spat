@@ -4,11 +4,17 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pytest = "*"
-pytest-env = "*"
+pytest = ">=7.0.0"
+pytest-env = ">=1.0.0"
+requests = ">=2.25.0"
 setuptools = "*"
 
 [dev-packages]
+pytest-cov = "*"
+black = "*"
+flake8 = "*"
+mypy = "*"
+pre-commit = "*"
 
 [requires]
-python_version = "3.13"
+python_version = "3.11"

@@ -1,3 +1,39 @@
+Metadata-Version: 2.4
+Name: pytest-pyrest
+Version: 0.1.0
+Summary: A PyTest plugin for REST API testing
+Home-page: https://github.com/yourusername/pytest-pyrest
+Author: Jasmine-Arabella Post
+Author-email: 
+License: GPL-3.0
+Project-URL: Homepage, https://github.com/yourusername/pytest-pyrest
+Project-URL: Repository, https://github.com/yourusername/pytest-pyrest
+Project-URL: Issues, https://github.com/yourusername/pytest-pyrest/issues
+Keywords: pytest,plugin,testing,api,rest,http
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Software Development :: Testing
+Classifier: Framework :: Pytest
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pytest>=7.0.0
+Requires-Dist: requests>=2.25.0
+Requires-Dist: pytest-env>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
 # pytest-pyrest
 
 A PyTest plugin for REST API testing with enhanced fixtures and utilities.
