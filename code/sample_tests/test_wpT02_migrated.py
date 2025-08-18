@@ -7,7 +7,6 @@
 ################################################################################
 
 import pytest
-import inspect
 from random import choice
 from string import ascii_letters
 import logging
@@ -15,7 +14,6 @@ import datetime
 from random_word import RandomWords
 import json
 import os
-from apis.wp_api_client import wp_client, authenticated_wp_client, assert_api
 
 # Setup time stamp
 now = datetime.datetime.now()
@@ -28,9 +26,9 @@ myLogger.setLevel(logging.DEBUG)
 
 
 @pytest.mark.api
-def test_get_pages():
+def test_get_pages(request, wp_client, assert_api):
     """Migrated version of test_tmp() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     response = wp_client.get_pages()
@@ -43,9 +41,9 @@ def test_get_pages():
 
 
 @pytest.mark.api
-def test_get_posts():
+def test_get_posts(request, wp_client, assert_api):
     """Migrated version of test_Get_Posts() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     response = wp_client.get_posts()
@@ -58,9 +56,9 @@ def test_get_posts():
 
 
 @pytest.mark.api
-def test_get_posts_call_succeeded():
+def test_get_posts_call_succeeded(request, wp_client, assert_api):
     """Migrated version of test_Get_Posts_Call_Succeeded() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     response = wp_client.get_posts()
@@ -73,9 +71,9 @@ def test_get_posts_call_succeeded():
 
 
 @pytest.mark.api
-def test_get_posts_call_failed():
+def test_get_posts_call_failed(request, wp_client, assert_api):
     """Migrated version of test_Get_Posts_Call_Failed() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     # Test with a bad endpoint - this would need to be implemented in the client
@@ -89,9 +87,9 @@ def test_get_posts_call_failed():
 
 
 @pytest.mark.api
-def test_make_good_new_post():
+def test_make_good_new_post(request, authenticated_wp_client, assert_api):
     """Migrated version of test_Make_Good_New_Post() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     post_title = 'This is cow number ' + number_name
@@ -111,9 +109,9 @@ def test_make_good_new_post():
 
 
 @pytest.mark.api
-def test_make_failed_new_post():
+def test_make_failed_new_post(request, wp_client, assert_api):
     """Migrated version of test_Make_Failed_New_Post() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     post_title = 'This is the ' + ''.join(choice(ascii_letters) for i in range(12)) + ' big dead cow'
@@ -141,9 +139,9 @@ def test_make_failed_new_post():
 
 
 @pytest.mark.api
-def test_make_good_new_post_2():
+def test_make_good_new_post_2(request, authenticated_wp_client, assert_api):
     """Migrated version of test_Make_Good_New_Post_2() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     post_title = 'There are ' + number_name + ' cows'

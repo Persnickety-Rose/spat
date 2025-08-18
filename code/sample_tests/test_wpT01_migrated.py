@@ -7,11 +7,9 @@
 ################################################################################
 
 import pytest
-import inspect
 import logging
 import datetime
 import os
-from apis.wp_api_client import wp_client, assert_api
 
 # Set time stamp
 now = datetime.datetime.now()
@@ -24,9 +22,9 @@ myLogger.setLevel(logging.DEBUG)
 
 
 @pytest.mark.api
-def test_get_pages():
+def test_get_pages(request, wp_client, assert_api):
     """Migrated version of test_tmp() using plugin framework"""
-    test_name = inspect.stack()[0][3]
+    test_name = request.node.name
     myLogger.info("Test " + test_name + " is starting")
     
     # Use plugin framework instead of traditional approach
