@@ -93,9 +93,9 @@ log_handler.setFormatter(formatterFinal)
 #   Some helper functions
 #========================
 def newName():
-  """
-  A function to create a name with a time stamp
-  """
+    """
+    A function to create a name with a time stamp
+    """
     now = datetime.datetime.now()
     nowtime = now.strftime("%f")
     returnString = "JP-" + str(nowtime)
@@ -110,7 +110,8 @@ def newName():
 import repackage
 repackage.up()
 
-from sample_tests.apis import WP_APIs
+# Traditional approach removed - use plugin framework instead
+# from sample_tests.apis import WP_APIs
 
 myEnv = "https://my_wp-mfpost902951.codeanyapp.com"
 
