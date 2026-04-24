@@ -26,9 +26,6 @@ The traditional inheritance-based approach has been successfully removed from th
 - `code/sample_tests/MIGRATION_SUMMARY.md` - This summary document
 - `code/sample_tests/cleanup_traditional_approach.py` - Cleanup script
 
-### Backups:
-- `code/sample_tests/backup_traditional_approach/` - All original files preserved
-
 ## Key Improvements
 
 ### 1. **Code Quality**
@@ -101,8 +98,7 @@ assert_api.status_code(response, 201)
 
 ## Rollback Plan
 
-If needed, original files can be restored from:
-- `code/sample_tests/backup_traditional_approach/`
+If needed, restore earlier revisions from git history (the in-repo backup directory was removed).
 
 ## Conclusion
 

@@ -51,10 +51,9 @@ assert len(response.content) > 10, "There was no data sent back from the call"
 - `code/sample_tests/MIGRATION_SUMMARY.md` - Complete migration summary
 - `code/sample_tests/PLUGIN_VS_TRADITIONAL.md` - Comparison document (updated)
 
-## Backups
+## History
 
-All original files are preserved in:
-- `code/sample_tests/backup_traditional_approach/`
+Older traditional files, if needed, live in git history only (no in-repo backup tree).
 
 ## Verification
 

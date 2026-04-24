@@ -174,9 +174,6 @@ The traditional approach has been successfully migrated to the plugin framework.
 - `code/sample_tests/MIGRATION_GUIDE.md` - Migration documentation
 - `code/sample_tests/cleanup_traditional_approach.py` - Cleanup script
 
-### Backups:
-- All original files are backed up in `code/sample_tests/backup_traditional_approach/`
-
 ## When to Use Each Approach
 
 ### ❌ Traditional Approach (DEPRECATED):
