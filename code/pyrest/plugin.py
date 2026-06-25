@@ -112,6 +112,14 @@ def load_environment_variables(config):
                     os.environ[key] = value
 
 
+def get_wp_auth(username_default: str = "admin", password_default: str = "password") -> tuple:
+    """Return WordPress credentials from environment variables."""
+    return (
+        os.getenv("WP_USERNAME", username_default),
+        os.getenv("WP_PASSWORD", password_default),
+    )
+
+
 @pytest.fixture
 def api_client():
     """Fixture that provides an API client instance"""
@@ -124,6 +132,7 @@ class APIClient:
     def __init__(self):
         self.base_url = os.getenv("envURL", "http://localhost:8888")
         self.logger = logging.getLogger('pyrest.api')
+        self.default_auth = get_wp_auth()
     
     def request(
         self,
@@ -153,6 +162,9 @@ class APIClient:
             API instance with response data
         """
         url = f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+        
+        if auth is None:
+            auth = self.default_auth
         
         # Create API instance
         api = API(

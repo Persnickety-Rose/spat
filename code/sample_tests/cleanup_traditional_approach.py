@@ -6,8 +6,6 @@ This script helps identify and remove files and references to the traditional ap
 
 import os
 import sys
-import shutil
-from pathlib import Path
 
 
 def find_files_to_remove():
@@ -46,18 +44,6 @@ def find_references_to_remove():
                     print(f"Error reading {file_path}: {e}")
     
     return references
-
-
-def backup_files(files_to_remove):
-    """Create backup of files before removal"""
-    backup_dir = "code/sample_tests/backup_traditional_approach"
-    os.makedirs(backup_dir, exist_ok=True)
-    
-    for file_path in files_to_remove:
-        if os.path.exists(file_path):
-            backup_path = os.path.join(backup_dir, os.path.basename(file_path))
-            shutil.copy2(file_path, backup_path)
-            print(f"✅ Backed up: {file_path} -> {backup_path}")
 
 
 def remove_files(files_to_remove, dry_run=True):
@@ -114,12 +100,8 @@ def main():
     else:
         print("No references found.")
     
-    # Backup files
-    print("\n3. Creating backups...")
-    backup_files(files_to_remove)
-    
     # Update documentation
-    print("\n4. Documentation to update...")
+    print("\n3. Documentation to update...")
     update_documentation()
     
     # Ask for confirmation
@@ -127,12 +109,12 @@ def main():
     print("SUMMARY:")
     print(f"- Files to remove: {len(files_to_remove)}")
     print(f"- Files with references: {len(references)}")
-    print("- Backups created in: code/sample_tests/backup_traditional_approach/")
+    print("- Use git history if you need copies of removed files.")
     
     if files_to_remove:
         response = input("\nDo you want to proceed with removal? (y/N): ")
         if response.lower() == 'y':
-            print("\n5. Removing files...")
+            print("\n4. Removing files...")
             remove_files(files_to_remove, dry_run=False)
             print("\n✅ Cleanup completed!")
         else:

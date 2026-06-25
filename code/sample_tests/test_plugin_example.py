@@ -2,6 +2,7 @@
 Example tests using the pytest-pyrest plugin
 """
 import pytest
+from pyrest.plugin import get_wp_auth
 import os
 
 
@@ -78,15 +79,7 @@ def test_delete_post(api_client, assert_api):
 @pytest.mark.api
 def test_authenticated_request(api_client, assert_api):
     """Test authenticated request"""
-    # Get credentials from environment
-    username = os.getenv("WP_USERNAME", "admin")
-    password = os.getenv("WP_PASSWORD", "password")
-    
-    # Make authenticated request
-    response = api_client.get(
-        "wp-json/wp/v2/users/me",
-        auth=(username, password)
-    )
+    response = api_client.get("wp-json/wp/v2/users/me")
     
     # Assert response
     assert_api.status_code(response, 200)
@@ -136,10 +129,14 @@ def test_legacy_api_class_usage():
     """Example of using the legacy API class directly"""
     from pyrest import API
     
+    username, password = get_wp_auth()
+    
     # Create API instance
     api = API(
         address="http://localhost:8888/wp-json/wp/v2/posts",
-        method="GET"
+        method="GET",
+        user=username,
+        password=password,
     )
     
     # Make request
@@ -155,10 +152,14 @@ def test_legacy_assertions():
     """Example of using legacy assertion functions"""
     from pyrest import API, AssertTest, AssertSearch
     
+    username, password = get_wp_auth()
+    
     # Create API instance
     api = API(
         address="http://localhost:8888/wp-json/wp/v2/posts",
-        method="GET"
+        method="GET",
+        user=username,
+        password=password,
     )
     
     # Make request

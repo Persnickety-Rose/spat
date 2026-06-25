@@ -15,9 +15,12 @@ code/pytest_pyrest.egg-info/dependency_links.txt
 code/pytest_pyrest.egg-info/entry_points.txt
 code/pytest_pyrest.egg-info/requires.txt
 code/pytest_pyrest.egg-info/top_level.txt
+code/sample_tests/cleanup_traditional_approach.py
 code/sample_tests/conftest.py
 code/sample_tests/test_plugin_example.py
-code/sample_tests/test_wpT01.py
-code/sample_tests/test_wpT02.py
-code/sample_tests/apis/WP_APIs.py
+code/sample_tests/test_wpT01_migrated.py
+code/sample_tests/test_wpT02_migrated.py
+code/sample_tests/test_wp_plugin_example.py
+code/sample_tests/verify_migration.py
 code/sample_tests/apis/__init__.py
+code/sample_tests/apis/wp_api_client.py

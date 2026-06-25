@@ -11,8 +11,6 @@ from random import choice
 from string import ascii_letters
 import logging
 import datetime
-from random_word import RandomWords
-import json
 import os
 
 # Setup time stamp
@@ -145,9 +143,8 @@ def test_make_good_new_post_2(request, authenticated_wp_client, assert_api):
     myLogger.info("Test " + test_name + " is starting")
     
     post_title = 'There are ' + number_name + ' cows'
-    words = RandomWords()
-    rWords = words.get_random_word()
-    content = ' '.join(rWords for i in range(600))
+    token = ''.join(choice(ascii_letters) for _ in range(8))
+    content = ' '.join(token for _ in range(600))
     
     response = authenticated_wp_client.create_post(
         title=post_title,

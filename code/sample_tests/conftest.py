@@ -17,9 +17,11 @@ def base_url():
 @pytest.fixture(scope="session")
 def api_credentials():
     """API credentials for authenticated requests"""
+    from pyrest.plugin import get_wp_auth
+    username, password = get_wp_auth()
     return {
-        "username": os.getenv("WP_USERNAME", ""),
-        "password": os.getenv("WP_PASSWORD", "")
+        "username": username,
+        "password": password,
     }
 
 

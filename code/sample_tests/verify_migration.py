@@ -50,31 +50,15 @@ def check_migrated_files():
     return all_exist
 
 
-def check_backup_files():
-    """Check that backup files exist"""
+def check_legacy_backup_absent():
+    """Obsolete in-repo backups are removed; use git history if you need old files."""
     backup_dir = "code/sample_tests/backup_traditional_approach"
-    backup_files = [
-        "WP_APIs.py",
-        "test_wpT01.py",
-        "test_wpT02.py"
-    ]
-    
-    print("\n🔍 Checking for backup files...")
-    all_backed_up = True
-    
-    if not os.path.exists(backup_dir):
-        print(f"❌ Backup directory missing: {backup_dir}")
+    print("\n🔍 Checking legacy backup directory is absent...")
+    if os.path.exists(backup_dir):
+        print(f"❌ Remove obsolete directory (breaks pytest if repopulated): {backup_dir}")
         return False
-    
-    for file_name in backup_files:
-        backup_path = os.path.join(backup_dir, file_name)
-        if os.path.exists(backup_path):
-            print(f"✅ Backup exists: {backup_path}")
-        else:
-            print(f"❌ Backup missing: {backup_path}")
-            all_backed_up = False
-    
-    return all_backed_up
+    print(f"✅ No legacy backup directory: {backup_dir}")
+    return True
 
 
 def check_plugin_framework():
@@ -105,7 +89,7 @@ def main():
     # Check all aspects of migration
     files_removed = check_files_removed()
     migrated_files_exist = check_migrated_files()
-    backup_files_exist = check_backup_files()
+    legacy_backup_absent = check_legacy_backup_absent()
     plugin_framework_exists = check_plugin_framework()
     
     # Summary
@@ -113,10 +97,10 @@ def main():
     print("MIGRATION VERIFICATION SUMMARY:")
     print(f"✅ Traditional files removed: {files_removed}")
     print(f"✅ Migrated files created: {migrated_files_exist}")
-    print(f"✅ Backup files preserved: {backup_files_exist}")
+    print(f"✅ Legacy backup directory absent: {legacy_backup_absent}")
     print(f"✅ Plugin framework available: {plugin_framework_exists}")
     
-    if all([files_removed, migrated_files_exist, backup_files_exist, plugin_framework_exists]):
+    if all([files_removed, migrated_files_exist, legacy_backup_absent, plugin_framework_exists]):
         print("\n🎉 MIGRATION SUCCESSFUL!")
         print("All traditional approach files have been successfully migrated to the plugin framework.")
         print("\nNext steps:")
@@ -128,7 +112,7 @@ def main():
         print("Some aspects of the migration need attention.")
         print("Please review the issues above and complete the migration.")
     
-    return all([files_removed, migrated_files_exist, backup_files_exist, plugin_framework_exists])
+    return all([files_removed, migrated_files_exist, legacy_backup_absent, plugin_framework_exists])
 
 
 if __name__ == "__main__":

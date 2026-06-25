@@ -8,6 +8,7 @@ import pytest
 import json
 from apis.wp_api_client import WordPressAPIClient, wp_client, authenticated_wp_client
 import os
+from pyrest.plugin import get_wp_auth
 
 
 class TestWordPressPages:

@@ -1,0 +1,6 @@
+# .cursorrules or AGENTS.md
+
+When installing Python packages, always use `uv` instead of `pip`.
+Use `uv sync` to install dependencies from `pyproject.toml` or `requirements.txt`.
+Use `uv venv .venv` to create virtual environments.
+The virtual environment is located at `.venv`.
