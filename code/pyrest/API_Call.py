@@ -14,7 +14,6 @@ import json
 import re
 import logging
 import ssl
-from . util import *
 
 # setting up logging
 callLogger = logging.getLogger('myLogger')
@@ -166,62 +165,6 @@ class API(object):
             returnMessage = "Test Failed"
 
         return returnMessage
-
-    ########################################
-    #      Verify API call succeeded       #
-    ########################################
-    def Call_Succeeded(self, testObject, return_code='200', returns_content='yes'):
-        """
-        This method does a basic verification that the API call succeeded
-
-        :param testObject: --REQUIRED-- the object created by the test
-        :param return_code: the return code expected.    Default is 200
-        :param returns_content: The return data much contain content.    Default yes
-        """
-      
-        # some logging
-        callLogger.info("The status is: " + str(self.status))
-
-        # some basic asserts
-        if returns_content == 'yes':
-            AssertTest(testObject=testObject, assertTest="len(testObject.content) > 0",
-                       message="There was no data sent back from the call", assertError='no')
-
-        # specific assert
-        assert_test = "testObject.status == " + return_code
-        assert_message = "The test didn't return a " + return_code + " as expected"
-        AssertTest(testObject=self, assertTest=assert_test, message=assert_message, assertError='no')
-        callLogger.info("This call succeeded as expected.       TEST PASSED\n")
-
-    ########################################
-    #       Verify API call fails          #
-    ########################################
-    def Call_Failed(self, testObject, return_code='400', returns_content='no'):
-        """
-        This method does a basic verification that the API call failed
-       
-        :param testObject: --REQUIRED-- the object created by the test
-        :param return_code: the return code expected.    Default is 400
-        :param returns_content: The return data much contain content.    Default no
-        """
-
-        # some logging
-        callLogger.info("The status is: " + str(self.status))
-
-        # some basic asserts
-        if returns_content == 'yes':
-            AssertTest(testObject=testObject, assertTest="len(testObject.content) > 0",
-                       message="There was no data sent back from the call", assertError='no')
-        elif returns_content == 'no':
-            AssertTest(testObject=testObject, assertTest="len(testObject.content) == 0",
-                       message="There was unexpected data sent back from the call", assertError='no')
-
-        # specific assert
-        assert_test = "testObject.status == " + return_code
-        assert_message = "The test didn't return a " + return_code + " as expected"
-        AssertTest(testObject=self, assertTest=assert_test, message=assert_message, assertError='no')
-        callLogger.info("This call -failed- as expected.        TEST PASSED\n")
-
 
     ########################################
     #   Method to pretty print the JSON    #

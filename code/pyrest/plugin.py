@@ -7,7 +7,6 @@ import logging
 import pytest
 from typing import Optional, Dict, Any
 from .API_Call import API
-from .util import AssertTest, AssertSearch
 
 
 def pytest_configure(config):
@@ -225,9 +224,12 @@ class APIAssertions:
         assert len(response.content) > 0, "Response has no content"
     
     def contains_text(self, response: API, text: str):
-        """Assert response contains specific text"""
-        AssertSearch(response, text)
-    
+        """Assert response contains specific text."""
+        content = response.content
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="replace")
+        assert text in content, f"Expected to find '{text}' in response content"
+
     def json_contains(self, response: API, key: str, value: Any = None):
         """Assert JSON response contains key/value"""
         assert hasattr(response, 'json'), "Response is not JSON"
@@ -237,9 +239,14 @@ class APIAssertions:
                 f"Expected {key}={value}, got {response.json[key]}"
     
     def success(self, response: API, expected_code: int = 200):
-        """Assert successful API call"""
-        response.Call_Succeeded(response, str(expected_code))
-    
-    def failure(self, response: API, expected_code: int = 400):
-        """Assert failed API call"""
-        response.Call_Failed(response, str(expected_code))
+        """Assert successful API call."""
+        self.status_code(response, expected_code)
+        self.has_content(response)
+
+    def failure(self, response: API, expected_code: int = 400, expect_content: bool = False):
+        """Assert failed API call."""
+        self.status_code(response, expected_code)
+        if expect_content:
+            self.has_content(response)
+        else:
+            assert len(response.content) == 0, "Expected empty response content"

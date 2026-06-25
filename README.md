@@ -19,7 +19,6 @@ pip install pytest requests pytest-env
 - **Assertion Helpers**: Built-in assertion utilities for API responses
 - **Environment Management**: Load environment variables from CSV files
 - **Logging**: Comprehensive logging for API requests and responses
-- **Backward Compatibility**: Still supports the original API classes
 
 ## Quick Start
 
@@ -95,68 +94,42 @@ def test_api_response(api_client, assert_api):
     
     # Text search
     assert_api.contains_text(response, "expected_text")
-    
-    # Legacy-style assertions
+
+    # Success and failure helpers
     assert_api.success(response, 200)
-    assert_api.failure(response, 400)
+    assert_api.failure(response, 404, expect_content=True)
 ```
 
 ## Command Line Options
 
 - `--env-file`: Path to environment CSV file (default: qa-environment.csv)
 - `--vars-file`: Path to additional variables CSV file
-- `--log-level`: Logging level (DEBUG, INFO, WARNING, ERROR)
-- `--log-file`: Custom log file path
+- `--api-log-level`: Logging level (DEBUG, INFO, WARNING, ERROR)
+- `--api-log-file`: Custom log file path
 
 ## Markers
 
 - `@pytest.mark.api`: Mark test as an API test
 - `@pytest.mark.slow`: Mark test as slow running
 
-## Legacy Usage
-
-The plugin maintains backward compatibility with the original API classes:
-
-```python
-from pyrest import API, AssertTest, AssertSearch
-
-# Create API instance
-api = API(
-    address="http://localhost:8888/api/endpoint",
-    method="GET"
-)
-
-# Make request
-api.CallAPI()
-
-# Use legacy assertions
-AssertTest(
-    testObject=api,
-    assertTest="testObject.status == 200",
-    message="Expected status code 200"
-)
-
-AssertSearch(api, "expected_text")
-```
-
 ## Configuration
 
-### pytest.ini
+### pyproject.toml
 
-```ini
-[pytest]
-env =
-    envURL=http://localhost:8888
-    WP_USERNAME=admin
-    WP_PASSWORD=password
-
-markers =
-    api: mark test as an API test
-    slow: mark test as slow running
-
-testpaths = tests
+```toml
+[tool.pytest.ini_options]
+testpaths = ["code/sample_tests"]
+markers = [
+    "api: mark test as an API test",
+    "slow: mark test as slow running",
+]
+env = [
+    "envURL=http://localhost:8888",
+    "pyTestEnv=code/sample_tests/env/qa-environment.csv",
+    "pyTestDebug=true",
+]
 log_cli = true
-log_cli_level = INFO
+log_cli_level = "INFO"
 ```
 
 ### Environment Files
@@ -172,7 +145,7 @@ PASSWORD,test_password
 
 ## Examples
 
-See `code/sample_tests/test_plugin_example.py` for comprehensive examples.
+See `code/sample_tests/test_plugin_example.py` and `code/sample_tests/test_wordpress_api.py` for examples.
 
 ## Contributing
 
