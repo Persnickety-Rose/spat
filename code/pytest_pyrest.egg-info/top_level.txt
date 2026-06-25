@@ -1,2 +1,0 @@
-pyrest
-sample_tests

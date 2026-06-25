@@ -6,10 +6,10 @@ A PyTest plugin for REST API testing with enhanced fixtures and utilities.
 
 ```bash
 # Install from local directory
-pip install -e .
+uv sync
 
-# Or install dependencies manually
-pip install pytest requests pytest-env
+# With development dependencies
+uv sync --extra dev
 ```
 
 ## Features
@@ -50,16 +50,16 @@ WP_PASSWORD,password
 
 ```bash
 # Run all API tests
-pytest -m api
+uv run pytest -m api
 
 # Run with custom environment file
-pytest --env-file=my-environment.csv
+uv run pytest --env-file=my-environment.csv
 
 # Run with verbose output
-pytest -v
+uv run pytest -v
 
 # Run specific test file
-pytest code/sample_tests/test_plugin_example.py
+uv run pytest code/sample_tests/test_plugin_example.py
 ```
 
 ## Fixtures
@@ -102,7 +102,7 @@ def test_api_response(api_client, assert_api):
 
 ## Command Line Options
 
-- `--env-file`: Path to environment CSV file (default: qa-environment.csv)
+- `--env-file`: Path to environment CSV file (default: code/sample_tests/env/qa-environment.csv)
 - `--vars-file`: Path to additional variables CSV file
 - `--api-log-level`: Logging level (DEBUG, INFO, WARNING, ERROR)
 - `--api-log-file`: Custom log file path

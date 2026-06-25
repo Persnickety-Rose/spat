@@ -29,7 +29,7 @@ def pytest_addoption(parser):
     group.addoption(
         "--env-file",
         action="store",
-        default="qa-environment.csv",
+        default="code/sample_tests/env/qa-environment.csv",
         help="Path to environment CSV file"
     )
     group.addoption(
