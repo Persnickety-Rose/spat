@@ -1,10 +1,13 @@
 .idea/
+.venv/
 code/logs/
 code/sample_tests/logs/
 logs/
 __pycache__/
+**/__pycache__/
 code/logs/
 code/pyrest/__pycache__/
+*.egg-info/
 
 # Log files
 *.log
