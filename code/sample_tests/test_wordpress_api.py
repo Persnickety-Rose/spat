@@ -1,209 +1,260 @@
-#!/usr/bin/env python
 """
-Example tests using the WordPress API Client with the PyRest Plugin Framework
-This demonstrates the modern approach to writing API tests
+WordPress API tests using the PyRest plugin framework and WordPressAPIClient.
 """
 
-import pytest
-import json
-from apis.wp_api_client import WordPressAPIClient, wp_client, authenticated_wp_client
 import os
-from pyrest.plugin import get_wp_auth
+import uuid
+from random import choice
+from string import ascii_letters
+
+import pytest
+
+from apis.wp_api_client import WordPressAPIClient
+
+pytestmark = pytest.mark.api
 
 
 class TestWordPressPages:
-    """Test WordPress pages functionality"""
-    
+    """Test WordPress pages functionality."""
+
     def test_get_pages(self, wp_client, assert_api):
-        """Test getting all pages"""
+        """Test getting all pages."""
         response = wp_client.get_pages()
-        
-        # Use plugin assertion helpers
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-        
-        # Additional assertions
-        assert hasattr(response, 'json')
+        assert len(response.content) > 10, "There was no data sent back from the call"
+        assert hasattr(response, "json")
         assert isinstance(response.json, list)
-    
+
     def test_get_pages_with_params(self, wp_client, assert_api):
-        """Test getting pages with query parameters"""
+        """Test getting pages with query parameters."""
         params = {"per_page": 5, "orderby": "date"}
         response = wp_client.get_pages(params=params)
-        
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-    
+
     def test_get_specific_page(self, wp_client, assert_api):
-        """Test getting a specific page by ID"""
-        # First get all pages to find an ID
+        """Test getting a specific page by ID."""
         pages_response = wp_client.get_pages()
         assert_api.status_code(pages_response, 200)
-        
+
         if pages_response.json:
-            page_id = pages_response.json[0]['id']
+            page_id = pages_response.json[0]["id"]
             response = wp_client.get_page(page_id)
-            
+
             assert_api.status_code(response, 200)
             assert_api.has_content(response)
-            assert response.json['id'] == page_id
+            assert response.json["id"] == page_id
 
 
 class TestWordPressPosts:
-    """Test WordPress posts functionality"""
-    
+    """Test WordPress posts functionality."""
+
     def test_get_posts(self, wp_client, assert_api):
-        """Test getting all posts"""
+        """Test getting all posts."""
         response = wp_client.get_posts()
-        
+
+        assert len(response.content) > 0
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-    
+
     def test_get_posts_with_params(self, wp_client, assert_api):
-        """Test getting posts with query parameters"""
+        """Test getting posts with query parameters."""
         params = {"per_page": 3, "orderby": "title"}
         response = wp_client.get_posts(params=params)
-        
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
 
 
 class TestWordPressCategories:
-    """Test WordPress categories functionality"""
-    
+    """Test WordPress categories functionality."""
+
     def test_get_categories(self, wp_client, assert_api):
-        """Test getting all categories"""
+        """Test getting all categories."""
         response = wp_client.get_categories()
-        
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
 
 
 class TestWordPressAuthenticatedOperations:
-    """Test authenticated WordPress operations"""
-    
+    """Test authenticated WordPress operations."""
+
     def test_get_current_user(self, authenticated_wp_client, assert_api):
-        """Test getting current user information"""
+        """Test getting current user information."""
         response = authenticated_wp_client.get_current_user()
-        
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-        assert_api.json_contains(response, 'id')
-    
+        assert_api.json_contains(response, "id")
+
     def test_get_users(self, authenticated_wp_client, assert_api):
-        """Test getting all users"""
+        """Test getting all users."""
         response = authenticated_wp_client.get_users()
-        
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-    
+
     def test_create_page(self, authenticated_wp_client, assert_api):
-        """Test creating a new page"""
+        """Test creating a new page."""
         test_title = "Test Page from Plugin Framework"
         test_content = "This is a test page created using the plugin framework"
-        
+
         response = authenticated_wp_client.create_page(
             title=test_title,
             content=test_content,
-            status="draft"
+            status="draft",
         )
-        
-        assert_api.status_code(response, 201)  # Created
+
+        assert_api.status_code(response, 201)
         assert_api.has_content(response)
-        assert_api.json_contains(response, 'title', test_title)
-        assert_api.json_contains(response, 'content', test_content)
-    
+        assert_api.json_contains(response, "title", test_title)
+        assert_api.json_contains(response, "content", test_content)
+
     def test_create_post(self, authenticated_wp_client, assert_api):
-        """Test creating a new post"""
+        """Test creating a new draft post."""
         test_title = "Test Post from Plugin Framework"
         test_content = "This is a test post created using the plugin framework"
-        
+
         response = authenticated_wp_client.create_post(
             title=test_title,
             content=test_content,
-            status="draft"
+            status="draft",
         )
-        
-        assert_api.status_code(response, 201)  # Created
+
+        assert_api.status_code(response, 201)
         assert_api.has_content(response)
-        assert_api.json_contains(response, 'title', test_title)
-        assert_api.json_contains(response, 'content', test_content)
+        assert_api.json_contains(response, "title", test_title)
+        assert_api.json_contains(response, "content", test_content)
+
+    def test_create_published_post(self, authenticated_wp_client, assert_api):
+        """Test creating a published post with unique content."""
+        post_title = f"This is cow number {uuid.uuid4().hex[:8]}"
+        content = "".join(choice(ascii_letters) for _ in range(120))
+
+        response = authenticated_wp_client.create_post(
+            title=post_title,
+            content=content,
+            status="publish",
+        )
+
+        assert len(response.content) > 0
+        assert_api.status_code(response, 201)
+        assert_api.has_content(response)
+
+    def test_create_draft_post_with_long_content(self, authenticated_wp_client, assert_api):
+        """Test creating a draft post with long content."""
+        post_title = f"There are {uuid.uuid4().hex[:8]} cows"
+        token = "".join(choice(ascii_letters) for _ in range(8))
+        content = " ".join(token for _ in range(600))
+
+        response = authenticated_wp_client.create_post(
+            title=post_title,
+            content=content,
+            status="draft",
+        )
+
+        assert len(response.content) > 0
+        assert_api.status_code(response, 201)
+        assert_api.has_content(response)
 
 
 class TestWordPressErrorHandling:
-    """Test error handling scenarios"""
-    
+    """Test error handling scenarios."""
+
     def test_get_nonexistent_page(self, wp_client, assert_api):
-        """Test getting a page that doesn't exist"""
+        """Test getting a page that doesn't exist."""
         response = wp_client.get_page(99999)
-        
+
         assert_api.status_code(response, 404)
-    
+
+    def test_get_nonexistent_post(self, wp_client, assert_api):
+        """Test getting a post that doesn't exist."""
+        response = wp_client.get_post(99999)
+
+        assert len(response.content) > 0
+        assert_api.status_code(response, 404)
+
     def test_create_page_without_auth(self, wp_client):
-        """Test that creating a page without authentication fails"""
+        """Test that creating a page without authentication fails."""
         with pytest.raises(ValueError, match="Username and password required"):
             wp_client.create_page("Test", "Content")
 
+    def test_create_post_without_auth(self):
+        """Test that creating a post without authentication fails."""
+        unauthenticated_client = WordPressAPIClient(
+            base_url=os.getenv("envURL", "http://localhost:8888"),
+            username="",
+            password="",
+        )
 
-# Example using the plugin's api_client fixture directly
+        post_title = f"This is the {uuid.uuid4().hex[:8]} big dead cow"
+        content = "".join(choice(ascii_letters) for _ in range(120))
+
+        with pytest.raises(ValueError, match="Username and password required"):
+            unauthenticated_client.create_post(
+                title=post_title,
+                content=content,
+                status="publish",
+            )
+
+
 class TestUsingPluginAPIClient:
-    """Example using the plugin's built-in api_client fixture"""
-    
+    """Example using the plugin's built-in api_client fixture."""
+
     def test_using_plugin_client(self, api_client, assert_api):
-        """Test using the plugin's api_client fixture"""
+        """Test using the plugin's api_client fixture."""
         response = api_client.get("/wp-json/wp/v2/pages")
-        
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-    
+
     def test_using_plugin_client_with_auth(self, api_client, assert_api):
-        """Test using the plugin's api_client with authentication"""
+        """Test using the plugin's api_client with authentication."""
         username = os.getenv("WP_USERNAME")
         password = os.getenv("WP_PASSWORD")
-        
+
         if not username or not password:
             pytest.skip("Authentication credentials not available")
-        
+
         response = api_client.get(
             "/wp-json/wp/v2/users/me",
-            auth=(username, password)
+            auth=(username, password),
         )
-        
+
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
 
 
-# Example of a more complex test scenario
 class TestWordPressWorkflow:
-    """Test a complete WordPress workflow"""
-    
+    """Test a complete WordPress workflow."""
+
     def test_page_lifecycle(self, authenticated_wp_client, assert_api):
-        """Test creating, updating, and deleting a page"""
-        # Create a page
+        """Test creating, updating, and deleting a page."""
         create_response = authenticated_wp_client.create_page(
             title="Lifecycle Test Page",
             content="Initial content",
-            status="draft"
+            status="draft",
         )
-        
+
         assert_api.status_code(create_response, 201)
-        page_id = create_response.json['id']
-        
-        # Update the page
+        page_id = create_response.json["id"]
+
         update_response = authenticated_wp_client.update_page(
             page_id,
             title="Updated Lifecycle Test Page",
-            content="Updated content"
+            content="Updated content",
         )
-        
+
         assert_api.status_code(update_response, 200)
-        assert_api.json_contains(update_response, 'title', "Updated Lifecycle Test Page")
-        
-        # Verify the update
+        assert_api.json_contains(update_response, "title", "Updated Lifecycle Test Page")
+
         get_response = authenticated_wp_client.get_page(page_id)
         assert_api.status_code(get_response, 200)
-        assert_api.json_contains(get_response, 'content', "Updated content")
-        
-        # Clean up - delete the page
+        assert_api.json_contains(get_response, "content", "Updated content")
+
         delete_response = authenticated_wp_client.delete_page(page_id, force=True)
         assert_api.status_code(delete_response, 200)
