@@ -4,8 +4,14 @@ A PyTest plugin for REST API testing with enhanced fixtures and utilities.
 
 ## Installation
 
+Requires [uv](https://docs.astral.sh/uv/) (Python 3.11+).
+
 ```bash
-# Install from local directory
+# Clone the repository
+git clone https://github.com/Persnickety-Rose/spat.git
+cd spat
+
+# Install dependencies (creates .venv automatically)
 uv sync
 
 # With development dependencies

@@ -1,4 +1,7 @@
 {
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/code/sample_tests"
+    ],
     "python.testing.pytestArgs": [
         "code"
     ],
