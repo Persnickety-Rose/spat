@@ -10,10 +10,12 @@
 #    Setup Stuff      #
 #########################
 import requests
+from requests.structures import CaseInsensitiveDict
 import json
 import re
 import logging
 import ssl
+from typing import Any, Optional, Union
 
 # setting up logging
 callLogger = logging.getLogger('myLogger')
@@ -34,7 +36,26 @@ class API(object):
     and has other methods for analyzing the results.
     """
 
-    def __init__(self, address, data="", header="", method="GET", params="", user="", password="", verify_ssl=True, cert_path=None):
+    json: Any
+    content: bytes
+    return_headers: CaseInsensitiveDict
+    url: str
+    status: int
+    body: Optional[bytes]
+    info: requests.Response
+
+    def __init__(
+        self,
+        address: str,
+        data: Union[dict[str, Any], str] = "",
+        header: Union[dict[str, str], str] = "",
+        method: str = "GET",
+        params: Union[dict[str, Any], str] = "",
+        user: str = "",
+        password: str = "",
+        verify_ssl: bool = True,
+        cert_path: Optional[str] = None,
+    ):
         """
         :param address: --REQUIRED-- The full url being called.
         :param data: Any and all data that needs to be sent as part of the payload
@@ -148,18 +169,21 @@ class API(object):
         
         #  set some attributes
         #=====================
-        # list of attributes
-        listAttrib = ["self.json = info.json()", "self.content = info.content", "self.return_headers = info.headers",
-                     "self.url = info.url", "self.status = info.status_code", "self.body = info.request.body",
-                     "self.info = info"]
-        # if URL was called loop through list of attributes to create
         if not testFAILED == "true":
-            for atrib in listAttrib:
+            response_attributes = {
+                "json": lambda: info.json(),
+                "content": lambda: info.content,
+                "return_headers": lambda: info.headers,
+                "url": lambda: info.url,
+                "status": lambda: info.status_code,
+                "body": lambda: info.request.body,
+                "info": lambda: info,
+            }
+            for name, getter in response_attributes.items():
                 try:
-                    exec(atrib) in globals(), locals()
+                    setattr(self, name, getter())
                 except (AttributeError, ValueError, TypeError):
-                    callLogger.error("Failed to create attribute: " + atrib)
-                    pass
+                    callLogger.error("Failed to create attribute: self." + name)
             returnMessage = self.status
         else:
             returnMessage = "Test Failed"
