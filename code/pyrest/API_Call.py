@@ -131,7 +131,10 @@ class API(object):
             request_params["params"] = self.params
 
         if self.data != "":
-            request_params["data"] = self.data
+            if isinstance(self.data, dict):
+                request_params["json"] = self.data
+            else:
+                request_params["data"] = self.data
 
         # Make call
         if self.user:
