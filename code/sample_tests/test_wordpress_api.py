@@ -191,10 +191,16 @@ class TestWordPressErrorHandling:
         assert len(response.content) > 0
         assert_api.status_code(response, 404)
 
-    def test_create_page_without_auth(self, wp_client):
+    def test_create_page_without_auth(self):
         """Test that creating a page without authentication fails."""
+        unauthenticated_client = WordPressAPIClient(
+            base_url=os.getenv("envURL", "http://localhost:8888"),
+            username="",
+            password="",
+        )
+
         with pytest.raises(ValueError, match="Username and password required"):
-            wp_client.create_page("Test", "Content")
+            unauthenticated_client.create_page("Test", "Content")
 
     def test_create_post_without_auth(self):
         """Test that creating a post without authentication fails."""
