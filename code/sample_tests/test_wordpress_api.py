@@ -269,11 +269,11 @@ class TestWordPressWorkflow:
         )
 
         assert_api.status_code(update_response, 200)
-        assert_api.json_contains(update_response, "title", "Updated Lifecycle Test Page")
+        assert update_response.json["title"]["rendered"] == "Updated Lifecycle Test Page"
 
         get_response = authenticated_wp_client.get_page(page_id)
         assert_api.status_code(get_response, 200)
-        assert_api.json_contains(get_response, "content", "Updated content")
+        assert "Updated content" in get_response.json["content"]["rendered"]
 
         delete_response = authenticated_wp_client.delete_page(page_id, force=True)
         assert_api.status_code(delete_response, 200)
