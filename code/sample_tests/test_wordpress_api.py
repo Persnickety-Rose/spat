@@ -2,6 +2,7 @@
 WordPress API tests using the PyRest plugin framework and WordPressAPIClient.
 """
 
+import json
 import os
 import uuid
 from random import choice
@@ -109,10 +110,22 @@ class TestWordPressAuthenticatedOperations:
             status="draft",
         )
 
-        assert_api.status_code(response, 201)
-        assert_api.has_content(response)
-        assert_api.json_contains(response, "title", test_title)
-        assert_api.json_contains(response, "content", test_content)
+        try:
+            assert_api.status_code(response, 201)
+            assert_api.has_content(response)
+            assert_api.json_contains(response, "title")
+            assert response.json["title"]["raw"] == test_title
+            assert_api.json_contains(response, "content")
+            assert response.json["content"]["raw"] == test_content
+        except AssertionError as exc:
+            if hasattr(response, "json"):
+                response_json = json.dumps(response.json, indent=2)
+            else:
+                content = response.content
+                if isinstance(content, bytes):
+                    content = content.decode("utf-8", errors="replace")
+                response_json = content
+            pytest.fail(f"{exc}\n\nFull response JSON:\n{response_json}")
 
     def test_create_post(self, authenticated_wp_client, assert_api):
         """Test creating a new draft post."""
@@ -127,8 +140,8 @@ class TestWordPressAuthenticatedOperations:
 
         assert_api.status_code(response, 201)
         assert_api.has_content(response)
-        assert_api.json_contains(response, "title", test_title)
-        assert_api.json_contains(response, "content", test_content)
+        assert response.json["title"]["raw"] == test_title
+        assert response.json["content"]["raw"] == test_content
 
     def test_create_published_post(self, authenticated_wp_client, assert_api):
         """Test creating a published post with unique content."""

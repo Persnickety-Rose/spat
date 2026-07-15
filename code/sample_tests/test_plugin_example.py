@@ -3,6 +3,8 @@ Example tests using the pytest-pyrest plugin
 """
 import pytest
 
+created_post_id = None
+
 
 @pytest.mark.api
 def test_get_posts_using_plugin(api_client, assert_api):
@@ -46,6 +48,9 @@ def test_create_post(api_client, assert_api):
     assert_api.status_code(response, 201)  # Created
     assert_api.has_content(response)
 
+    global created_post_id
+    created_post_id = response.json["id"]
+
 
 @pytest.mark.api
 def test_update_post(api_client, assert_api):
@@ -67,7 +72,8 @@ def test_update_post(api_client, assert_api):
 def test_delete_post(api_client, assert_api):
     """Test deleting a post"""
     # Make API request
-    response = api_client.delete("wp-json/wp/v2/posts/1")
+    assert created_post_id is not None, "test_create_post must run first"
+    response = api_client.delete(f"wp-json/wp/v2/posts/{created_post_id}")
     
     # Assert response
     assert_api.status_code(response, 200)
