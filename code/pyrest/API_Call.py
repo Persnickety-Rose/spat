@@ -10,11 +10,12 @@
 #    Setup Stuff      #
 #########################
 import requests
+from requests.structures import CaseInsensitiveDict
 import json
 import re
 import logging
 import ssl
-from . util import *
+from typing import Any, Optional, Union
 
 # setting up logging
 callLogger = logging.getLogger('myLogger')
@@ -35,7 +36,26 @@ class API(object):
     and has other methods for analyzing the results.
     """
 
-    def __init__(self, address, data="", header="", method="GET", params="", user="", password="", verify_ssl=True, cert_path=None):
+    json: Any
+    content: bytes
+    return_headers: CaseInsensitiveDict
+    url: str
+    status: int
+    body: Optional[bytes]
+    info: requests.Response
+
+    def __init__(
+        self,
+        address: str,
+        data: Union[dict[str, Any], str] = "",
+        header: Union[dict[str, str], str] = "",
+        method: str = "GET",
+        params: Union[dict[str, Any], str] = "",
+        user: str = "",
+        password: str = "",
+        verify_ssl: bool = True,
+        cert_path: Optional[str] = None,
+    ):
         """
         :param address: --REQUIRED-- The full url being called.
         :param data: Any and all data that needs to be sent as part of the payload
@@ -111,7 +131,10 @@ class API(object):
             request_params["params"] = self.params
 
         if self.data != "":
-            request_params["data"] = self.data
+            if isinstance(self.data, dict):
+                request_params["json"] = self.data
+            else:
+                request_params["data"] = self.data
 
         # Make call
         if self.user:
@@ -149,79 +172,26 @@ class API(object):
         
         #  set some attributes
         #=====================
-        # list of attributes
-        listAttrib = ["self.json = info.json()", "self.content = info.content", "self.return_headers = info.headers",
-                     "self.url = info.url", "self.status = info.status_code", "self.body = info.request.body",
-                     "self.info = info"]
-        # if URL was called loop through list of attributes to create
         if not testFAILED == "true":
-            for atrib in listAttrib:
+            response_attributes = {
+                "json": lambda: info.json(),
+                "content": lambda: info.content,
+                "return_headers": lambda: info.headers,
+                "url": lambda: info.url,
+                "status": lambda: info.status_code,
+                "body": lambda: info.request.body,
+                "info": lambda: info,
+            }
+            for name, getter in response_attributes.items():
                 try:
-                    exec(atrib) in globals(), locals()
+                    setattr(self, name, getter())
                 except (AttributeError, ValueError, TypeError):
-                    callLogger.error("Failed to create attribute: " + atrib)
-                    pass
+                    callLogger.error("Failed to create attribute: self." + name)
             returnMessage = self.status
         else:
             returnMessage = "Test Failed"
 
         return returnMessage
-
-    ########################################
-    #      Verify API call succeeded       #
-    ########################################
-    def Call_Succeeded(self, testObject, return_code='200', returns_content='yes'):
-        """
-        This method does a basic verification that the API call succeeded
-
-        :param testObject: --REQUIRED-- the object created by the test
-        :param return_code: the return code expected.    Default is 200
-        :param returns_content: The return data much contain content.    Default yes
-        """
-      
-        # some logging
-        callLogger.info("The status is: " + str(self.status))
-
-        # some basic asserts
-        if returns_content == 'yes':
-            AssertTest(testObject=testObject, assertTest="len(testObject.content) > 0",
-                       message="There was no data sent back from the call", assertError='no')
-
-        # specific assert
-        assert_test = "testObject.status == " + return_code
-        assert_message = "The test didn't return a " + return_code + " as expected"
-        AssertTest(testObject=self, assertTest=assert_test, message=assert_message, assertError='no')
-        callLogger.info("This call succeeded as expected.       TEST PASSED\n")
-
-    ########################################
-    #       Verify API call fails          #
-    ########################################
-    def Call_Failed(self, testObject, return_code='400', returns_content='no'):
-        """
-        This method does a basic verification that the API call failed
-       
-        :param testObject: --REQUIRED-- the object created by the test
-        :param return_code: the return code expected.    Default is 400
-        :param returns_content: The return data much contain content.    Default no
-        """
-
-        # some logging
-        callLogger.info("The status is: " + str(self.status))
-
-        # some basic asserts
-        if returns_content == 'yes':
-            AssertTest(testObject=testObject, assertTest="len(testObject.content) > 0",
-                       message="There was no data sent back from the call", assertError='no')
-        elif returns_content == 'no':
-            AssertTest(testObject=testObject, assertTest="len(testObject.content) == 0",
-                       message="There was unexpected data sent back from the call", assertError='no')
-
-        # specific assert
-        assert_test = "testObject.status == " + return_code
-        assert_message = "The test didn't return a " + return_code + " as expected"
-        AssertTest(testObject=self, assertTest=assert_test, message=assert_message, assertError='no')
-        callLogger.info("This call -failed- as expected.        TEST PASSED\n")
-
 
     ########################################
     #   Method to pretty print the JSON    #

@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pytest-pyrest"
+version = "0.1.0"
+description = "A PyTest plugin for REST API testing"
+readme = "README.md"
+license = {text = "GPL-3.0"}
+authors = [
+    {name = "Jasmine-Arabella Post"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Framework :: Pytest",
+]
+keywords = ["pytest", "plugin", "testing", "api", "rest", "http"]
+requires-python = ">=3.11"
+dependencies = [
+    "pytest>=7.0.0",
+    "requests>=2.25.0",
+    "pytest-env>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest-cov",
+    "black",
+    "flake8",
+    "mypy",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/pytest-pyrest"
+Repository = "https://github.com/yourusername/pytest-pyrest"
+Issues = "https://github.com/yourusername/pytest-pyrest/issues"
+
+[project.entry-points."pytest11"]
+pyrest = "pyrest.plugin"
+
+[tool.setuptools.packages.find]
+where = ["code"]
+
+[tool.setuptools.package-dir]
+"" = "code"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.basedpyright]
+extraPaths = ["code/sample_tests"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-v --tb=short --strict-markers -ra"
+testpaths = ["code/sample_tests"]
+pythonpath = ["code/sample_tests"]
+markers = [
+    "api: mark test as an API test",
+    "slow: mark test as slow running",
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+env = [
+    "envURL=http://localhost:8888",
+    "pyTestEnv=code/sample_tests/env/qa-environment.csv",
+    "pyTestDebug=true",
+]

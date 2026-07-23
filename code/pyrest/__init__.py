@@ -1,9 +1,18 @@
 """
-pyrest - A Python REST API testing framework
+pytest-pyrest - A PyTest plugin for REST API testing
 """
 
-# from .API_Call import API
-# from .setup import get_env_var, get_additional_var
-# from .util import AssertTest
+from .API_Call import API
+from .plugin import APIClient, APIAssertions, api_client, assert_api, get_wp_auth
 
-# __all__ = ['API', 'get_env_var', 'get_additional_var', 'AssertTest']
+__version__ = "0.1.0"
+__author__ = "Jasmine-Arabella Post"
+
+__all__ = [
+    "API",
+    "APIClient",
+    "APIAssertions",
+    "api_client",
+    "assert_api",
+    "get_wp_auth",
+]
