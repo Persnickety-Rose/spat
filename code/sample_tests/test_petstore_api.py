@@ -54,13 +54,37 @@ class TestPetstorePets:
     """Pet resource tests — create then read/update/delete."""
 
     def test_add_pet(self, authenticated_petstore_client, assert_api):
+        """POST /pet returns a Pet with all schema fields echoed back."""
         pet = _pet_payload()
         response = authenticated_petstore_client.add_pet(pet)
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-        assert_api.json_contains(response, "id")
+
+        # Pet schema: id, category, name, photoUrls, tags, status
+        # https://petstore.swagger.io/#/pet/addPet
+        assert_api.json_contains(response, "id", pet["id"])
         assert_api.json_contains(response, "name", pet["name"])
+        assert_api.json_contains(response, "photoUrls", pet["photoUrls"])
+        assert_api.json_contains(response, "status", pet["status"])
+        assert_api.json_contains(response, "category", pet["category"])
+        assert_api.json_contains(response, "tags", pet["tags"])
+
+        body = response.json
+        assert isinstance(body["id"], int)
+        assert isinstance(body["name"], str)
+        assert isinstance(body["photoUrls"], list) and all(
+            isinstance(url, str) for url in body["photoUrls"]
+        )
+        assert body["status"] in ("available", "pending", "sold")
+        assert set(body["category"]) == {"id", "name"}
+        assert isinstance(body["category"]["id"], int)
+        assert isinstance(body["category"]["name"], str)
+        assert isinstance(body["tags"], list)
+        for tag in body["tags"]:
+            assert set(tag) == {"id", "name"}
+            assert isinstance(tag["id"], int)
+            assert isinstance(tag["name"], str)
 
     def test_get_pet_by_id(self, authenticated_petstore_client, assert_api):
         pet = _pet_payload()
