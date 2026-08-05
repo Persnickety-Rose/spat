@@ -1,127 +1,20 @@
 """Swagger Petstore API tests using the PyRest plugin framework."""
 
-import uuid
-from typing import Any, Dict, Literal
-
 import pytest
-from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
+from pydantic import TypeAdapter
+
+from util_petstore import (
+    ApiResponse,
+    Order,
+    Pet,
+    User,
+    assert_json_types,
+    order_payload,
+    pet_payload,
+    user_payload,
+)
 
 pytestmark = pytest.mark.api
-
-
-class Category(BaseModel):
-    model_config = ConfigDict(strict=True)
-
-    id: int
-    name: str
-
-
-class Tag(BaseModel):
-    model_config = ConfigDict(strict=True)
-
-    id: int
-    name: str
-
-
-class Pet(BaseModel):
-    """Pet schema from https://petstore.swagger.io/"""
-
-    model_config = ConfigDict(strict=True)
-
-    id: int
-    name: str
-    photoUrls: list[str]
-    status: Literal["available", "pending", "sold"] | None = None
-    category: Category | None = None
-    tags: list[Tag] | None = None
-
-
-class Order(BaseModel):
-    model_config = ConfigDict(strict=True)
-
-    id: int
-    petId: int
-    quantity: int
-    status: Literal["placed", "approved", "delivered"]
-    complete: bool
-    shipDate: str | None = None
-
-
-class User(BaseModel):
-    model_config = ConfigDict(strict=True)
-
-    id: int
-    username: str
-    firstName: str
-    lastName: str
-    email: str
-    password: str
-    phone: str
-    userStatus: int
-
-
-class ApiResponse(BaseModel):
-    model_config = ConfigDict(strict=True)
-
-    code: int
-    type: str
-    message: str
-
-
-def assert_json_types(
-    response: Any,
-    schema: type[BaseModel] | TypeAdapter[Any],
-) -> Any:
-    """Validate response.json field types against a Pydantic model or TypeAdapter."""
-    assert hasattr(response, "json"), "Response is not JSON"
-    try:
-        if isinstance(schema, TypeAdapter):
-            return schema.validate_python(response.json, strict=True)
-        return schema.model_validate(response.json)
-    except ValidationError as exc:
-        raise AssertionError(f"Response JSON failed type validation:\n{exc}") from exc
-
-
-def _unique_suffix() -> str:
-    return uuid.uuid4().hex[:8]
-
-
-def _pet_payload(name: str | None = None, status: str = "available") -> Dict[str, Any]:
-    suffix = _unique_suffix()
-    return {
-        "id": int(suffix, 16) % 1_000_000_000,
-        "name": name or f"doggie-{suffix}",
-        "photoUrls": ["https://example.com/photo.jpg"],
-        "status": status,
-        "category": {"id": 1, "name": "Dogs"},
-        "tags": [{"id": 1, "name": f"tag-{suffix}"}],
-    }
-
-
-def _user_payload(username: str | None = None) -> Dict[str, Any]:
-    suffix = _unique_suffix()
-    uname = username or f"user_{suffix}"
-    return {
-        "id": int(suffix, 16) % 1_000_000_000,
-        "username": uname,
-        "firstName": "Test",
-        "lastName": "User",
-        "email": f"{uname}@example.com",
-        "password": "password123",
-        "phone": "555-0100",
-        "userStatus": 1,
-    }
-
-
-def _order_payload(pet_id: int = 1) -> Dict[str, Any]:
-    suffix = _unique_suffix()
-    return {
-        "id": (int(suffix, 16) % 10) + 1,  # valid order IDs are 1-10 for GET
-        "petId": pet_id,
-        "quantity": 1,
-        "status": "placed",
-        "complete": False,
-    }
 
 
 class TestPetstorePets:
@@ -129,7 +22,7 @@ class TestPetstorePets:
 
     def test_add_pet(self, authenticated_petstore_client, assert_api):
         """POST /pet returns a Pet with all schema fields echoed back."""
-        pet = _pet_payload()
+        pet = pet_payload()
         response = authenticated_petstore_client.add_pet(pet)
 
         assert_api.status_code(response, 200)
@@ -146,7 +39,7 @@ class TestPetstorePets:
         assert_api.json_contains(response, "tags", pet["tags"])
 
     def test_get_pet_by_id(self, authenticated_petstore_client, assert_api):
-        pet = _pet_payload()
+        pet = pet_payload()
         create_response = authenticated_petstore_client.add_pet(pet)
         assert_api.status_code(create_response, 200)
         pet_id = create_response.json["id"]
@@ -159,7 +52,7 @@ class TestPetstorePets:
         assert response.json["id"] == pet_id
 
     def test_update_pet(self, authenticated_petstore_client, assert_api):
-        pet = _pet_payload(status="available")
+        pet = pet_payload(status="available")
         create_response = authenticated_petstore_client.add_pet(pet)
         assert_api.status_code(create_response, 200)
         pet_id = create_response.json["id"]
@@ -180,7 +73,7 @@ class TestPetstorePets:
         assert_json_types(response, TypeAdapter(list[Pet]))
 
     def test_update_pet_with_form(self, authenticated_petstore_client, assert_api):
-        pet = _pet_payload()
+        pet = pet_payload()
         create_response = authenticated_petstore_client.add_pet(pet)
         assert_api.status_code(create_response, 200)
         pet_id = create_response.json["id"]
@@ -193,7 +86,7 @@ class TestPetstorePets:
         assert_api.status_code(response, 200)
 
     def test_delete_pet(self, authenticated_petstore_client, assert_api):
-        pet = _pet_payload()
+        pet = pet_payload()
         create_response = authenticated_petstore_client.add_pet(pet)
         assert_api.status_code(create_response, 200)
         pet_id = create_response.json["id"]
@@ -219,7 +112,7 @@ class TestPetstoreStore:
         assert_json_types(response, TypeAdapter(dict[str, int]))
 
     def test_place_order(self, petstore_client, assert_api):
-        order = _order_payload(pet_id=1)
+        order = order_payload(pet_id=1)
         response = petstore_client.place_order(order)
 
         assert_api.status_code(response, 200)
@@ -229,7 +122,7 @@ class TestPetstoreStore:
         assert_api.json_contains(response, "petId")
 
     def test_get_order_by_id(self, petstore_client, assert_api):
-        order = _order_payload(pet_id=1)
+        order = order_payload(pet_id=1)
         create_response = petstore_client.place_order(order)
         assert_api.status_code(create_response, 200)
         order_id = create_response.json["id"]
@@ -241,7 +134,7 @@ class TestPetstoreStore:
         assert response.json["id"] == order_id
 
     def test_delete_order(self, petstore_client, assert_api):
-        order = _order_payload(pet_id=1)
+        order = order_payload(pet_id=1)
         create_response = petstore_client.place_order(order)
         assert_api.status_code(create_response, 200)
         order_id = create_response.json["id"]
@@ -255,14 +148,14 @@ class TestPetstoreUsers:
     """User resource tests with unique usernames."""
 
     def test_create_user(self, petstore_client, assert_api):
-        user = _user_payload()
+        user = user_payload()
         response = petstore_client.create_user(user)
 
         assert_api.status_code(response, 200)
         assert_json_types(response, ApiResponse)
 
     def test_get_user_by_name(self, petstore_client, assert_api):
-        user = _user_payload()
+        user = user_payload()
         create_response = petstore_client.create_user(user)
         assert_api.status_code(create_response, 200)
 
@@ -274,7 +167,7 @@ class TestPetstoreUsers:
         assert_api.json_contains(response, "username", user["username"])
 
     def test_login_user(self, petstore_client, assert_api):
-        user = _user_payload()
+        user = user_payload()
         create_response = petstore_client.create_user(user)
         assert_api.status_code(create_response, 200)
 
@@ -284,7 +177,7 @@ class TestPetstoreUsers:
         assert_json_types(response, ApiResponse)
 
     def test_update_user(self, petstore_client, assert_api):
-        user = _user_payload()
+        user = user_payload()
         create_response = petstore_client.create_user(user)
         assert_api.status_code(create_response, 200)
 
@@ -294,7 +187,7 @@ class TestPetstoreUsers:
         assert_api.status_code(response, 200)
 
     def test_delete_user(self, petstore_client, assert_api):
-        user = _user_payload()
+        user = user_payload()
         create_response = petstore_client.create_user(user)
         assert_api.status_code(create_response, 200)
 
