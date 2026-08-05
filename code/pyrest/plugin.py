@@ -29,7 +29,7 @@ def pytest_addoption(parser):
     group.addoption(
         "--env-file",
         action="store",
-        default="code/sample_tests/env/qa-environment.csv",
+        default="code/sample_tests/env/test-environment.csv",
         help="Path to environment CSV file"
     )
     group.addoption(
@@ -111,11 +111,21 @@ def load_environment_variables(config):
                     os.environ[key] = value
 
 
-def get_wp_auth(username_default: str = "admin", password_default: str = "password") -> tuple:
-    """Return WordPress credentials from environment variables."""
+def get_auth(
+    username_env: str = "API_USERNAME",
+    password_env: str = "API_PASSWORD",
+    username_default: str = "",
+    password_default: str = "",
+) -> tuple[str, str]:
+    """Return basic-auth credentials from environment variables.
+
+    Reads ``API_USERNAME`` / ``API_PASSWORD`` by default. Returns empty
+    strings when unset so requests proceed without basic auth. Pass
+    alternate env var names for APIs that use different credentials.
+    """
     return (
-        os.getenv("WP_USERNAME", username_default),
-        os.getenv("WP_PASSWORD", password_default),
+        os.getenv(username_env, username_default),
+        os.getenv(password_env, password_default),
     )
 
 
@@ -129,9 +139,9 @@ class APIClient:
     """Enhanced API client for PyTest integration"""
     
     def __init__(self):
-        self.base_url = os.getenv("envURL", "http://localhost:8888")
+        self.base_url = os.getenv("envURL", "https://petstore.swagger.io/v2")
         self.logger = logging.getLogger('pyrest.api')
-        self.default_auth = get_wp_auth()
+        self.default_auth = get_auth()
     
     def request(
         self,
