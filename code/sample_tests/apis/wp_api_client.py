@@ -4,24 +4,32 @@ WordPress API Client using the PyRest Plugin Framework
 This demonstrates the modern approach to creating API call classes using the plugin framework
 """
 
-import pytest
-from typing import Dict, Any, Optional
-from pyrest.API_Call import API
 import os
+from typing import Any
+
+import pytest
+from pyrest import BaseAPIClient
+from pyrest.API_Call import API
 
 
-class WordPressAPIClient:
+class WordPressAPIClient(BaseAPIClient):
     """
     WordPress API Client using the plugin framework approach.
     This class provides a clean interface for WordPress API operations
     without requiring inheritance from the base API class.
     """
-    
-    def __init__(self, base_url: str, username: str = "", password: str = "", 
-                 verify_ssl: bool = False, cert_path: Optional[str] = None):
+
+    def __init__(
+        self,
+        base_url: str,
+        username: str = "",
+        password: str = "",
+        verify_ssl: bool = False,
+        cert_path: str | None = None,
+    ):
         """
         Initialize the WordPress API client
-        
+
         Args:
             base_url: Base URL for the WordPress site
             username: WordPress username for authenticated requests
@@ -29,56 +37,15 @@ class WordPressAPIClient:
             verify_ssl: Whether to verify SSL certificates
             cert_path: Path to custom CA certificate bundle
         """
-        self.base_url = base_url.rstrip('/')
-        self.username = username
-        self.password = password
-        self.verify_ssl = verify_ssl
-        self.cert_path = cert_path
-        self.default_headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-    
-    def _create_api_instance(self, endpoint: str, method: str = "GET", 
-                           data: Optional[Dict[str, Any]] = None,
-                           headers: Optional[Dict[str, str]] = None,
-                           params: Optional[Dict[str, Any]] = None) -> API:
-        """
-        Create and configure an API instance
-        
-        Args:
-            endpoint: API endpoint path
-            method: HTTP method
-            data: Request body data
-            headers: Request headers
-            params: URL parameters
-            
-        Returns:
-            Configured API instance
-        """
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        
-        # Merge headers
-        request_headers = self.default_headers.copy()
-        if headers:
-            request_headers.update(headers)
-        
-        # Create API instance
-        api = API(
-            address=url,
-            method=method.upper(),
-            data=data or "",
-            header=request_headers,
-            params=params or "",
-            user=self.username,
-            password=self.password,
-            verify_ssl=self.verify_ssl,
-            cert_path=self.cert_path
+        super().__init__(
+            base_url,
+            username=username,
+            password=password,
+            verify_ssl=verify_ssl,
+            cert_path=cert_path,
         )
-        
-        return api
-    
-    def get_pages(self, params: Optional[Dict[str, Any]] = None) -> API:
+
+    def get_pages(self, params: dict[str, Any] | None = None) -> API:
         """
         Get all pages
         
@@ -114,7 +81,7 @@ class WordPressAPIClient:
         return api
     
     def create_page(self, title: str, content: str, status: str = "publish",
-                   additional_data: Optional[Dict[str, Any]] = None) -> API:
+                   additional_data: dict[str, Any] | None = None) -> API:
         """
         Create a new page
         
@@ -193,7 +160,7 @@ class WordPressAPIClient:
         api.CallAPI()
         return api
     
-    def get_posts(self, params: Optional[Dict[str, Any]] = None) -> API:
+    def get_posts(self, params: dict[str, Any] | None = None) -> API:
         """
         Get all posts
         
@@ -229,7 +196,7 @@ class WordPressAPIClient:
         return api
     
     def create_post(self, title: str, content: str, status: str = "publish",
-                   additional_data: Optional[Dict[str, Any]] = None) -> API:
+                   additional_data: dict[str, Any] | None = None) -> API:
         """
         Create a new post
         
@@ -262,7 +229,7 @@ class WordPressAPIClient:
         api.CallAPI()
         return api
     
-    def get_users(self, params: Optional[Dict[str, Any]] = None) -> API:
+    def get_users(self, params: dict[str, Any] | None = None) -> API:
         """
         Get all users (requires authentication)
         
@@ -300,7 +267,7 @@ class WordPressAPIClient:
         api.CallAPI()
         return api
     
-    def get_categories(self, params: Optional[Dict[str, Any]] = None) -> API:
+    def get_categories(self, params: dict[str, Any] | None = None) -> API:
         """
         Get all categories
         
