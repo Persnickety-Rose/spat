@@ -1,11 +1,85 @@
 """Swagger Petstore API tests using the PyRest plugin framework."""
 
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 import pytest
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 
 pytestmark = pytest.mark.api
+
+
+class Category(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    id: int
+    name: str
+
+
+class Tag(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    id: int
+    name: str
+
+
+class Pet(BaseModel):
+    """Pet schema from https://petstore.swagger.io/"""
+
+    model_config = ConfigDict(strict=True)
+
+    id: int
+    name: str
+    photoUrls: list[str]
+    status: Literal["available", "pending", "sold"] | None = None
+    category: Category | None = None
+    tags: list[Tag] | None = None
+
+
+class Order(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    id: int
+    petId: int
+    quantity: int
+    status: Literal["placed", "approved", "delivered"]
+    complete: bool
+    shipDate: str | None = None
+
+
+class User(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    id: int
+    username: str
+    firstName: str
+    lastName: str
+    email: str
+    password: str
+    phone: str
+    userStatus: int
+
+
+class ApiResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    code: int
+    type: str
+    message: str
+
+
+def assert_json_types(
+    response: Any,
+    schema: type[BaseModel] | TypeAdapter[Any],
+) -> Any:
+    """Validate response.json field types against a Pydantic model or TypeAdapter."""
+    assert hasattr(response, "json"), "Response is not JSON"
+    try:
+        if isinstance(schema, TypeAdapter):
+            return schema.validate_python(response.json, strict=True)
+        return schema.model_validate(response.json)
+    except ValidationError as exc:
+        raise AssertionError(f"Response JSON failed type validation:\n{exc}") from exc
 
 
 def _unique_suffix() -> str:
@@ -60,6 +134,7 @@ class TestPetstorePets:
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
+        assert_json_types(response, Pet)
 
         # Pet schema: id, category, name, photoUrls, tags, status
         # https://petstore.swagger.io/#/pet/addPet
@@ -69,22 +144,6 @@ class TestPetstorePets:
         assert_api.json_contains(response, "status", pet["status"])
         assert_api.json_contains(response, "category", pet["category"])
         assert_api.json_contains(response, "tags", pet["tags"])
-
-        body = response.json
-        assert isinstance(body["id"], int)
-        assert isinstance(body["name"], str)
-        assert isinstance(body["photoUrls"], list) and all(
-            isinstance(url, str) for url in body["photoUrls"]
-        )
-        assert body["status"] in ("available", "pending", "sold")
-        assert set(body["category"]) == {"id", "name"}
-        assert isinstance(body["category"]["id"], int)
-        assert isinstance(body["category"]["name"], str)
-        assert isinstance(body["tags"], list)
-        for tag in body["tags"]:
-            assert set(tag) == {"id", "name"}
-            assert isinstance(tag["id"], int)
-            assert isinstance(tag["name"], str)
 
     def test_get_pet_by_id(self, authenticated_petstore_client, assert_api):
         pet = _pet_payload()
@@ -96,6 +155,7 @@ class TestPetstorePets:
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
+        assert_json_types(response, Pet)
         assert response.json["id"] == pet_id
 
     def test_update_pet(self, authenticated_petstore_client, assert_api):
@@ -108,6 +168,7 @@ class TestPetstorePets:
         response = authenticated_petstore_client.update_pet(updated)
 
         assert_api.status_code(response, 200)
+        assert_json_types(response, Pet)
         assert_api.json_contains(response, "name", updated["name"])
         assert_api.json_contains(response, "status", "sold")
 
@@ -116,7 +177,7 @@ class TestPetstorePets:
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-        assert isinstance(response.json, list)
+        assert_json_types(response, TypeAdapter(list[Pet]))
 
     def test_update_pet_with_form(self, authenticated_petstore_client, assert_api):
         pet = _pet_payload()
@@ -155,7 +216,7 @@ class TestPetstoreStore:
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-        assert isinstance(response.json, dict)
+        assert_json_types(response, TypeAdapter(dict[str, int]))
 
     def test_place_order(self, petstore_client, assert_api):
         order = _order_payload(pet_id=1)
@@ -163,6 +224,7 @@ class TestPetstoreStore:
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
+        assert_json_types(response, Order)
         assert_api.json_contains(response, "id")
         assert_api.json_contains(response, "petId")
 
@@ -175,6 +237,7 @@ class TestPetstoreStore:
         response = petstore_client.get_order(order_id)
 
         assert_api.status_code(response, 200)
+        assert_json_types(response, Order)
         assert response.json["id"] == order_id
 
     def test_delete_order(self, petstore_client, assert_api):
@@ -196,6 +259,7 @@ class TestPetstoreUsers:
         response = petstore_client.create_user(user)
 
         assert_api.status_code(response, 200)
+        assert_json_types(response, ApiResponse)
 
     def test_get_user_by_name(self, petstore_client, assert_api):
         user = _user_payload()
@@ -206,6 +270,7 @@ class TestPetstoreUsers:
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
+        assert_json_types(response, User)
         assert_api.json_contains(response, "username", user["username"])
 
     def test_login_user(self, petstore_client, assert_api):
@@ -216,6 +281,7 @@ class TestPetstoreUsers:
         response = petstore_client.login_user(user["username"], user["password"])
 
         assert_api.status_code(response, 200)
+        assert_json_types(response, ApiResponse)
 
     def test_update_user(self, petstore_client, assert_api):
         user = _user_payload()
