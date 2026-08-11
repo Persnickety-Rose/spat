@@ -1,6 +1,6 @@
 # Adding a New API
 
-This guide explains how APIs are managed in **pytest-pyrest** and walks through adding a new API set step by step. The WordPress integration in `code/sample_tests/` is the reference implementation.
+This guide explains how APIs are managed in **pytest-pyrest** and walks through adding a new API set step by step. The Petstore integration in `code/sample_tests/` is the reference implementation.
 
 ## How APIs Are Managed
 
@@ -20,7 +20,8 @@ requests library
 |-------|----------|------|
 | Base HTTP | `code/pyrest/API_Call.py` | Low-level `API` class. Every call returns an `API` object with `status`, `content`, `json`, etc. |
 | Plugin | `code/pyrest/plugin.py` | Pytest plugin: loads env vars, provides `api_client` and `assert_api` fixtures |
-| Domain client | `code/sample_tests/apis/` | Optional typed client with one method per endpoint (e.g. `wp_api_client.py`) |
+| Shared base | `code/pyrest/base_client.py` | `BaseAPIClient` with URL, header, auth, and SSL wiring for domain clients |
+| Domain client | `code/sample_tests/apis/` | Optional typed client with one method per endpoint (e.g. `petstore_api_client.py`) |
 | Tests | `code/sample_tests/test_*.py` | Pytest tests that use fixtures and assertion helpers |
 | Config | `code/sample_tests/env/*.csv` | Environment variables loaded at test collection time |
 
@@ -39,7 +40,7 @@ def test_list_items(api_client, assert_api):
 
 **Option B — Domain client (recommended for a full API surface)**
 
-Create a dedicated client class with typed methods, fixtures, and tests grouped by resource. This is how WordPress is implemented and is the pattern to follow when adding a substantial API.
+Create a dedicated client class with typed methods, fixtures, and tests grouped by resource. This is how Petstore is implemented and is the pattern to follow when adding a substantial API.
 
 The rest of this guide covers **Option B**.
 
@@ -73,12 +74,12 @@ Example plan:
 
 Add credentials and URLs to your environment CSV file.
 
-**File:** `code/sample_tests/env/qa-environment.csv`
+**File:** `code/sample_tests/env/test-environment.csv`
 
 Format is two columns per row, no header:
 
 ```csv
-envURL,http://localhost:8888
+envURL,https://petstore.swagger.io/v2
 ACME_API_URL,https://api.acme.example
 ACME_API_KEY,your_api_key_here
 ```
@@ -99,25 +100,25 @@ Create a new file under `code/sample_tests/apis/`.
 
 **File:** `code/sample_tests/apis/acme_api_client.py`
 
-Follow the WordPress client structure:
+Follow the Petstore client structure:
 
-1. Import `API` from `pyrest.API_Call`
-2. Define a client class with `__init__` for config (base URL, auth, headers)
-3. Add a private `_create_api_instance()` helper
-4. Add one public method per endpoint
-5. Define pytest fixtures at the bottom of the same file
+1. Subclass `BaseAPIClient` from `pyrest`
+2. Override `_auth_headers()` if you need header-based auth (API keys, bearer tokens)
+3. Add one public method per endpoint
+4. Define pytest fixtures at the bottom of the same file
 
-#### 3a. Client class and factory method
+#### 3a. Client class
 
 ```python
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import pytest
+from pyrest import BaseAPIClient
 from pyrest.API_Call import API
 
 
-class AcmeAPIClient:
+class AcmeAPIClient(BaseAPIClient):
     """Client for the Acme REST API."""
 
     def __init__(
@@ -127,52 +128,27 @@ class AcmeAPIClient:
         verify_ssl: bool = True,
         cert_path: Optional[str] = None,
     ):
-        self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
-        self.verify_ssl = verify_ssl
-        self.cert_path = cert_path
-        self.default_headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-
-    def _create_api_instance(
-        self,
-        endpoint: str,
-        method: str = "GET",
-        data: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> API:
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
-
-        request_headers = self.default_headers.copy()
-        if self.api_key:
-            request_headers["Authorization"] = f"Bearer {self.api_key}"
-        if headers:
-            request_headers.update(headers)
-
-        return API(
-            address=url,
-            method=method.upper(),
-            data=data or "",
-            header=request_headers,
-            params=params or "",
-            user="",
-            password="",
-            verify_ssl=self.verify_ssl,
-            cert_path=self.cert_path,
+        super().__init__(
+            base_url,
+            verify_ssl=verify_ssl,
+            cert_path=cert_path,
         )
+        self.api_key = api_key
+
+    def _auth_headers(self) -> dict[str, str]:
+        if self.api_key:
+            return {"Authorization": f"Bearer {self.api_key}"}
+        return {}
 ```
 
-**Key pattern:** The client uses **composition**, not inheritance. It creates an `API` instance, calls `CallAPI()`, and returns the response object. See `WordPressAPIClient._create_api_instance` in `wp_api_client.py` for the canonical example.
+**Key pattern:** Subclass `BaseAPIClient` so URL, headers, basic auth, and SSL wiring live in one place. Override `_auth_headers()` for header-based auth. See `PetstoreAPIClient` in `petstore_api_client.py` for the canonical example.
 
 #### 3b. Endpoint methods
 
 Each method follows the same three steps: create instance → call API → return response.
 
 ```python
-    def get_items(self, params: Optional[Dict[str, Any]] = None) -> API:
+    def get_items(self, params: Optional[dict[str, Any]] = None) -> API:
         api = self._create_api_instance(
             endpoint="/v1/items",
             method="GET",
@@ -213,7 +189,7 @@ Each method follows the same three steps: create instance → call API → retur
         return api
 ```
 
-For **basic auth** instead of a bearer token, pass `user=` and `password=` to `API()` (as WordPress does) rather than an `Authorization` header.
+For **basic auth** instead of a bearer token, pass `username=` and `password=` to `BaseAPIClient.__init__` (or use `get_auth()` from `pyrest.plugin`) rather than an `Authorization` header.
 
 #### 3c. Pytest fixtures
 
@@ -223,14 +199,14 @@ Define fixtures in the same file, reading from environment variables:
 @pytest.fixture
 def acme_client():
     """Unauthenticated or read-only Acme API client."""
-    base_url = os.getenv("ACME_API_URL", os.getenv("envURL", "http://localhost:8888"))
+    base_url = os.getenv("ACME_API_URL", os.getenv("envURL", "https://api.acme.example"))
     return AcmeAPIClient(base_url=base_url, verify_ssl=True)
 
 
 @pytest.fixture
 def authenticated_acme_client():
     """Acme API client with credentials. Skips test if key is missing."""
-    base_url = os.getenv("ACME_API_URL", os.getenv("envURL", "http://localhost:8888"))
+    base_url = os.getenv("ACME_API_URL", os.getenv("envURL", "https://api.acme.example"))
     api_key = os.getenv("ACME_API_KEY")
 
     if not api_key:
@@ -239,7 +215,7 @@ def authenticated_acme_client():
     return AcmeAPIClient(base_url=base_url, api_key=api_key, verify_ssl=True)
 ```
 
-This mirrors the `wp_client` / `authenticated_wp_client` pattern in `wp_api_client.py`.
+This mirrors the `petstore_client` / `authenticated_petstore_client` pattern in `petstore_api_client.py`.
 
 ---
 
@@ -253,13 +229,16 @@ Export your new fixtures so pytest discovers them project-wide.
 """PyTest configuration for sample tests."""
 
 from apis.acme_api_client import acme_client, authenticated_acme_client
-from apis.wp_api_client import authenticated_wp_client, wp_client
+from apis.petstore_api_client import (
+    authenticated_petstore_client,
+    petstore_client,
+)
 
 __all__ = [
     "acme_client",
     "authenticated_acme_client",
-    "wp_client",
-    "authenticated_wp_client",
+    "authenticated_petstore_client",
+    "petstore_client",
 ]
 ```
 
@@ -337,7 +316,7 @@ uv run pytest -m api
 uv run pytest code/sample_tests/test_acme_api.py
 
 # Run with a custom environment file
-uv run pytest --env-file=code/sample_tests/env/qa-environment.csv code/sample_tests/test_acme_api.py
+uv run pytest --env-file=code/sample_tests/env/test-environment.csv code/sample_tests/test_acme_api.py
 
 # Verbose API logging
 uv run pytest --api-log-level=DEBUG code/sample_tests/test_acme_api.py -v
@@ -349,10 +328,10 @@ uv run pytest --api-log-level=DEBUG code/sample_tests/test_acme_api.py -v
 
 Use this when adding any new API:
 
-- [ ] **Env vars** added to `code/sample_tests/env/qa-environment.csv` (or a custom CSV)
+- [ ] **Env vars** added to `code/sample_tests/env/test-environment.csv` (or a custom CSV)
 - [ ] **Client file** created at `code/sample_tests/apis/<name>_api_client.py`
-  - [ ] `__init__` stores base URL, auth, SSL settings
-  - [ ] `_create_api_instance()` builds and returns an `API` object
+  - [ ] Subclasses `BaseAPIClient`
+  - [ ] Overrides `_auth_headers()` when using header-based auth
   - [ ] One public method per endpoint; each calls `api.CallAPI()` and returns `api`
   - [ ] Auth-guarded methods raise `ValueError` or fixtures use `pytest.skip`
   - [ ] `@pytest.fixture` definitions for unauthenticated and authenticated clients
@@ -379,6 +358,7 @@ flowchart TB
         P[plugin.py]
         AC[APIClient fixture]
         AA[assert_api fixture]
+        BC[BaseAPIClient]
     end
 
     subgraph core [pyrest/]
@@ -388,7 +368,8 @@ flowchart TB
     T --> CL
     T --> AA
     C --> CL
-    CL --> API
+    CL --> BC
+    BC --> API
     AC --> API
     P --> AC
     P --> AA
@@ -401,27 +382,28 @@ flowchart TB
 
 | File | What it demonstrates |
 |------|---------------------|
-| `code/sample_tests/test_plugin_example.py` | Generic `api_client` + `assert_api` with endpoint strings |
-| `code/sample_tests/apis/wp_api_client.py` | Full domain client with fixtures |
-| `code/sample_tests/test_wordpress_api.py` | Test organization by resource, auth vs public, workflows |
-| `code/pyrest/plugin.py` | Plugin fixtures, env loading, assertion helpers |
+| `code/sample_tests/apis/petstore_api_client.py` | Full domain client with fixtures (`BaseAPIClient` subclass) |
+| `code/sample_tests/test_petstore_api.py` | Test organization by resource, auth vs public, workflows |
+| `code/sample_tests/util_petstore.py` | Shared models, payloads, and assertion helpers |
+| `code/pyrest/plugin.py` | Plugin fixtures, env loading, `get_auth`, assertion helpers |
+| `code/pyrest/base_client.py` | Shared base for domain clients |
 | `code/pyrest/API_Call.py` | Base `API` class all clients delegate to |
 
 ---
 
 ## Auth Patterns
 
-Different APIs use different auth. Here is how to handle common cases in `_create_api_instance`:
+Different APIs use different auth. Here is how to handle common cases:
 
 | Auth type | How to configure |
 |-----------|------------------|
-| None | Omit `user`, `password`, and auth headers |
-| Basic auth | Pass `user=` and `password=` to `API()` (WordPress pattern) |
-| Bearer token | Set `Authorization: Bearer <token>` in headers |
-| API key header | Set e.g. `X-API-Key: <key>` in headers |
-| Per-request override | Accept optional `headers=` or `auth=` in public methods and merge into the request |
+| None | Leave username/password empty; do not override `_auth_headers` |
+| Basic auth | Pass `username=` / `password=` to `BaseAPIClient`, or use `get_auth()` for the generic `api_client` |
+| Bearer token | Override `_auth_headers` to return `Authorization: Bearer <token>` |
+| API key header | Override `_auth_headers` to return e.g. `api_key: <key>` (Petstore pattern) |
+| Per-request override | Accept optional `headers=` in public methods and pass them to `_create_api_instance` |
 
-The generic `api_client` fixture supports per-request auth via `auth=(username, password)` and custom headers via the `headers=` kwarg. Domain clients can expose the same flexibility by adding optional parameters to `_create_api_instance` or individual endpoint methods.
+The generic `api_client` fixture reads basic auth from `API_USERNAME` / `API_PASSWORD` via `get_auth()`, and supports per-request auth via `auth=(username, password)` and custom headers via the `headers=` kwarg.
 
 ---
 

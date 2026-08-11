@@ -34,10 +34,10 @@ uv sync --extra dev
 import pytest
 
 @pytest.mark.api
-def test_get_posts(api_client, assert_api):
-    """Test getting posts from WordPress API"""
-    response = api_client.get("wp-json/wp/v2/posts")
-    
+def test_find_pets(api_client, assert_api):
+    """Test finding pets from the Swagger Petstore API"""
+    response = api_client.get("pet/findByStatus", params={"status": "available"})
+
     assert_api.status_code(response, 200)
     assert_api.has_content(response)
 ```
@@ -47,9 +47,11 @@ def test_get_posts(api_client, assert_api):
 Create a CSV file with environment variables:
 
 ```csv
-envURL,http://localhost:8888
-WP_USERNAME,admin
-WP_PASSWORD,password
+envURL,https://petstore.swagger.io/v2
+PETSTORE_API_URL,https://petstore.swagger.io/v2
+PETSTORE_API_KEY,special-key
+API_USERNAME,optional_user
+API_PASSWORD,optional_password
 ```
 
 ### Running Tests
@@ -65,7 +67,7 @@ uv run pytest --env-file=my-environment.csv
 uv run pytest -v
 
 # Run specific test file
-uv run pytest code/sample_tests/test_plugin_example.py
+uv run pytest code/sample_tests/test_petstore_api.py
 ```
 
 ## Fixtures
@@ -108,7 +110,7 @@ def test_api_response(api_client, assert_api):
 
 ## Command Line Options
 
-- `--env-file`: Path to environment CSV file (default: code/sample_tests/env/qa-environment.csv)
+- `--env-file`: Path to environment CSV file (default: code/sample_tests/env/test-environment.csv)
 - `--vars-file`: Path to additional variables CSV file
 - `--api-log-level`: Logging level (DEBUG, INFO, WARNING, ERROR)
 - `--api-log-file`: Custom log file path
@@ -130,8 +132,8 @@ markers = [
     "slow: mark test as slow running",
 ]
 env = [
-    "envURL=http://localhost:8888",
-    "pyTestEnv=code/sample_tests/env/qa-environment.csv",
+    "envURL=https://petstore.swagger.io/v2",
+    "pyTestEnv=code/sample_tests/env/test-environment.csv",
     "pyTestDebug=true",
 ]
 log_cli = true
@@ -145,13 +147,15 @@ Create CSV files with key-value pairs:
 ```csv
 envURL,https://api.example.com
 API_KEY,your_api_key_here
-USERNAME,test_user
-PASSWORD,test_password
+API_USERNAME,test_user
+API_PASSWORD,test_password
 ```
+
+Basic auth for the generic `api_client` is read via `get_auth()` from `API_USERNAME` / `API_PASSWORD` (empty when unset).
 
 ## Examples
 
-See `code/sample_tests/test_plugin_example.py` and `code/sample_tests/test_wordpress_api.py` for examples.
+See `code/sample_tests/test_petstore_api.py` and `code/sample_tests/apis/petstore_api_client.py` for examples. For adding a new API, see [docs/ADDING_APIS.md](docs/ADDING_APIS.md).
 
 ## Contributing
 
