@@ -204,6 +204,10 @@ class TestPetstoreUsers:
         response = petstore_client.logout_user()
 
         assert_api.status_code(response, 200)
+        assert_api.has_content(response)
+        assert_json_types(response, ApiResponse)
+        assert_api.json_contains(response, "code", 200)
+        assert_api.json_contains(response, "message", "ok")
 
     def test_delete_user(self, petstore_client, assert_api):
         user = user_payload()
