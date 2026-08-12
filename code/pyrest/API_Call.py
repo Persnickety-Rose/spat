@@ -11,20 +11,13 @@
 #########################
 import requests
 from requests.structures import CaseInsensitiveDict
-import json
 import re
 import logging
-import ssl
 from typing import Any, Optional, Union
 
 # setting up logging
 callLogger = logging.getLogger('myLogger')
 callLogger.setLevel(logging.NOTSET)
-
-# Create a custom SSL context with secure defaults
-ssl_context = ssl.create_default_context()
-ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-ssl_context.verify_mode = ssl.CERT_REQUIRED
 
 
 ############################################################
@@ -193,19 +186,6 @@ class API(object):
 
         return returnMessage
 
-    ########################################
-    #   Method to pretty print the JSON    #
-    ########################################
-    def JSON_PP(self):
-        """
-        This is a simple method to pretty print the returned JSON
-        It is mainly used in interactive testing.
-        :return: Nothing, but the JSON is printed to StdOut
-        """
-        global info
-        json1 = json.loads(info.content)
-        print( json.dumps(json1, indent=4, sort_keys=True))
-        
-        
+
 # End of File
 # ==============================================================================
