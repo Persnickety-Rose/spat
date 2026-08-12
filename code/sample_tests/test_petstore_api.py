@@ -191,6 +191,20 @@ class TestPetstoreUsers:
 
         assert_api.status_code(response, 200)
 
+    def test_logout_user(self, petstore_client, assert_api):
+        user = user_payload()
+        create_response = petstore_client.create_user(user)
+        assert_api.status_code(create_response, 200)
+
+        login_response = petstore_client.login_user(
+            user["username"], user["password"]
+        )
+        assert_api.status_code(login_response, 200)
+
+        response = petstore_client.logout_user()
+
+        assert_api.status_code(response, 200)
+
     def test_delete_user(self, petstore_client, assert_api):
         user = user_payload()
         create_response = petstore_client.create_user(user)
