@@ -1,8 +1,9 @@
 """Shared Petstore models, payloads, and assertion helpers for sample tests."""
 
 import uuid
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Tuple
 
+import pytest
 from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 
 
@@ -146,11 +147,62 @@ def user_payload(username: str | None = None) -> Dict[str, Any]:
 
 
 def order_payload(pet_id: int = 1) -> Dict[str, Any]:
+    """Build an order body for POST /store/order.
+
+    Order IDs are forced into 1–10 on purpose: Petstore's GET
+    /store/order/{orderId} only returns 200 for that range (other IDs 400/404).
+    Pets/users can use large random IDs; orders cannot. That tiny shared pool
+    is why place-then-get/delete tests must use ``place_and_get_order`` rather
+    than a single create + follow-up call.
+    """
     suffix = unique_suffix()
     return {
-        "id": (int(suffix, 16) % 10) + 1,  # valid order IDs are 1-10 for GET
+        "id": (int(suffix, 16) % 10) + 1,
         "petId": pet_id,
         "quantity": 1,
         "status": "placed",
         "complete": False,
     }
+
+
+def place_and_get_order(
+    client: Any,
+    assert_api: Any,
+    *,
+    pet_id: int = 1,
+    attempts: int = 5,
+) -> Tuple[Dict[str, Any], Any, Any]:
+    """Place an order, then GET it; retry when the public store races us.
+
+    Why retries are needed
+    ----------------------
+    ``order_payload`` must use IDs 1–10 (see that helper). Those IDs are a
+    global namespace on https://petstore.swagger.io — any other client can
+    overwrite or delete the same order between our POST and GET/DELETE.
+    Pets and users are unaffected because they use large/unique keys.
+
+    We only accept a GET that still matches the order we just placed (id,
+    petId, quantity, status), so we do not treat someone else's order as ours.
+    """
+    for _ in range(attempts):
+        order = order_payload(pet_id=pet_id)
+        created = client.place_order(order)
+        assert_api.status_code(created, 200)
+        order_id = created.json["id"]
+
+        fetched = client.get_order(order_id)
+        if fetched.status != 200:
+            continue
+        body = fetched.json
+        if (
+            body.get("id") == order_id
+            and body.get("petId") == order["petId"]
+            and body.get("quantity") == order["quantity"]
+            and body.get("status") == order["status"]
+        ):
+            return order, created, fetched
+
+    pytest.fail(
+        "Could not stably create+fetch order after "
+        f"{attempts} attempts (shared Petstore order IDs 1–10)"
+    )

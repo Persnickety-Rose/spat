@@ -12,6 +12,7 @@ from util_petstore import (
     assert_json_types,
     order_payload,
     pet_payload,
+    place_and_get_order,
     user_payload,
 )
 
@@ -114,6 +115,7 @@ class TestPetstoreStore:
         assert_json_types(response, TypeAdapter(dict[str, int]))
 
     def test_place_order(self, petstore_client, assert_api):
+        # POST-only: no follow-up GET, so the shared 1–10 order ID pool is fine.
         order = order_payload(pet_id=1)
         response = petstore_client.place_order(order)
 
@@ -124,22 +126,23 @@ class TestPetstoreStore:
         assert_api.json_contains(response, "petId")
 
     def test_get_order_by_id(self, petstore_client, assert_api):
-        order = order_payload(pet_id=1)
-        create_response = petstore_client.place_order(order)
-        assert_api.status_code(create_response, 200)
-        order_id = create_response.json["id"]
-
-        response = petstore_client.get_order(order_id)
+        # place_and_get_order retries because Petstore order IDs 1–10 are shared
+        # globally; a single place→get can 404 or return another client's order.
+        _order, created, response = place_and_get_order(
+            petstore_client, assert_api, pet_id=1
+        )
 
         assert_api.status_code(response, 200)
         assert_json_types(response, Order)
-        assert response.json["id"] == order_id
+        assert response.json["id"] == created.json["id"]
 
     def test_delete_order(self, petstore_client, assert_api):
-        order = order_payload(pet_id=1)
-        create_response = petstore_client.place_order(order)
-        assert_api.status_code(create_response, 200)
-        order_id = create_response.json["id"]
+        # Confirm the order is still ours via place_and_get_order, then delete
+        # immediately — same shared ID-pool race as get_order_by_id.
+        _order, created, _fetched = place_and_get_order(
+            petstore_client, assert_api, pet_id=1
+        )
+        order_id = created.json["id"]
 
         response = petstore_client.delete_order(order_id)
 
