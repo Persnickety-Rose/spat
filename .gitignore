@@ -14,3 +14,6 @@ code/pyrest/__pycache__/
 
 # Python compiled files
 *.pyc
+
+# Accidental local dumps
+pythoVer.txt
