@@ -33,6 +33,41 @@ class Pet(BaseModel):
     tags: list[Tag] | None = None
 
 
+class CategoryShape(BaseModel):
+    """Category field names/types when present; all fields optional."""
+
+    model_config = ConfigDict(strict=True)
+
+    id: int | None = None
+    name: str | None = None
+
+
+class TagShape(BaseModel):
+    """Tag field names/types when present; all fields optional."""
+
+    model_config = ConfigDict(strict=True)
+
+    id: int | None = None
+    name: str | None = None
+
+
+class PetShape(BaseModel):
+    """Pet response shape for list endpoints.
+
+    Checks known field names and types when present, without requiring
+    every field (public Petstore data is often incomplete).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: int | None = None
+    name: str | None = None
+    photoUrls: list[str | None] | None = None
+    status: Literal["available", "pending", "sold"] | None = None
+    category: CategoryShape | None = None
+    tags: list[TagShape] | None = None
+
+
 class Order(BaseModel):
     model_config = ConfigDict(strict=True)
 

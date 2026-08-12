@@ -7,6 +7,7 @@ from util_petstore import (
     ApiResponse,
     Order,
     Pet,
+    PetShape,
     User,
     assert_json_types,
     order_payload,
@@ -70,7 +71,8 @@ class TestPetstorePets:
 
         assert_api.status_code(response, 200)
         assert_api.has_content(response)
-        assert_json_types(response, TypeAdapter(list[Pet]))
+        # Shape only: public store pets often omit fields or use nulls
+        assert_json_types(response, TypeAdapter(list[PetShape]))
 
     def test_update_pet_with_form(self, authenticated_petstore_client, assert_api):
         pet = pet_payload()
