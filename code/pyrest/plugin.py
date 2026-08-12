@@ -20,7 +20,7 @@ def pytest_configure(config):
     )
     
     # Set up logging
-    setup_logging()
+    setup_logging(config.getoption("api_log_level"))
 
 
 def pytest_addoption(parser):
@@ -62,10 +62,11 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.api)
 
 
-def setup_logging():
-    """Set up logging configuration"""
+def setup_logging(log_level: str = "INFO"):
+    """Set up logging configuration using ``--api-log-level`` when provided."""
+    level = getattr(logging, log_level.upper(), logging.INFO)
     logger = logging.getLogger('pyrest')
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
     
     # Create formatter
     formatter = logging.Formatter(
@@ -74,6 +75,7 @@ def setup_logging():
     
     # Create console handler
     console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
@@ -82,6 +84,7 @@ def setup_logging():
     if os.path.exists(log_dir):
         log_file = os.path.join(log_dir, "pytest-api.log")
         file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
@@ -90,7 +93,6 @@ def load_environment_variables(config):
     """Load environment variables from CSV files"""
     env_file = config.getoption("env_file")
     vars_file = config.getoption("vars_file")
-    log_level = config.getoption("api_log_level")
     
     # Load main environment file
     if os.path.exists(env_file):
