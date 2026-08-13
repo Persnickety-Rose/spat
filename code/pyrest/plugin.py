@@ -20,7 +20,10 @@ def pytest_configure(config):
     )
     
     # Set up logging
-    setup_logging(config.getoption("api_log_level"))
+    setup_logging(
+        config.getoption("api_log_level"),
+        config.getoption("log_file") or None,
+    )
 
 
 def pytest_addoption(parser):
@@ -44,11 +47,6 @@ def pytest_addoption(parser):
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging level for API tests"
     )
-    group.addoption(
-        "--api-log-file",
-        action="store",
-        help="Log file path (default: logs/pytest-api.log)"
-    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -62,8 +60,8 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.api)
 
 
-def setup_logging(log_level: str = "INFO"):
-    """Set up logging configuration using ``--api-log-level`` when provided."""
+def setup_logging(log_level: str = "INFO", log_file: str | None = None):
+    """Set up logging using ``--api-log-level`` and pytest ``--log-file``."""
     level = getattr(logging, log_level.upper(), logging.INFO)
     logger = logging.getLogger('pyrest')
     logger.setLevel(level)
@@ -79,10 +77,10 @@ def setup_logging(log_level: str = "INFO"):
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
-    # Create file handler if log directory exists
-    log_dir = "logs"
-    if os.path.exists(log_dir):
-        log_file = os.path.join(log_dir, "pytest-api.log")
+    if log_file:
+        log_dir = os.path.dirname(os.path.abspath(log_file))
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
