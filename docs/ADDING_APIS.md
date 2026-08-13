@@ -319,7 +319,7 @@ uv run pytest example/test_acme_api.py
 uv run pytest --env-file=example/env/test-environment.csv example/test_acme_api.py
 
 # Verbose API logging
-uv run pytest --api-log-level=DEBUG example/test_acme_api.py -v
+uv run pytest --log-level=DEBUG example/test_acme_api.py -v
 ```
 
 ---

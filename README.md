@@ -112,7 +112,7 @@ def test_api_response(api_client, assert_api):
 
 - `--env-file`: Path to environment CSV file (this repo defaults to `example/env/test-environment.csv` via `pyproject.toml`)
 - `--vars-file`: Path to additional variables CSV file
-- `--api-log-level`: Logging level (DEBUG, INFO, WARNING, ERROR)
+- `--log-level`: Logging level (pytest built-in; also applied to the pyrest logger, default INFO)
 - `--log-file`: Write logs to this file (pytest built-in; pyrest also writes API logs here and creates parent dirs)
 
 ## Markers

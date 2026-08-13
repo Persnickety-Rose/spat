@@ -48,7 +48,7 @@ uv run pytest example/test_petstore_api.py::TestPetstoreUsers
 uv run pytest example/test_petstore_api.py::TestPetstoreUsers::test_logout_user
 
 # Verbose plugin logging
-uv run pytest example/ --api-log-level=DEBUG
+uv run pytest example/ --log-level=DEBUG
 
 # Write API logs to a file (creates parent dirs if needed)
 uv run pytest example/ --log-file=logs/pytest-api.log

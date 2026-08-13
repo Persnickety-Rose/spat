@@ -21,7 +21,7 @@ def pytest_configure(config):
     
     # Set up logging
     setup_logging(
-        config.getoption("api_log_level"),
+        config.getoption("log_level") or "INFO",
         config.getoption("log_file") or None,
     )
 
@@ -40,13 +40,6 @@ def pytest_addoption(parser):
         action="store",
         help="Path to additional variables CSV file"
     )
-    group.addoption(
-        "--api-log-level",
-        action="store",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="Logging level for API tests"
-    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -60,9 +53,14 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.api)
 
 
-def setup_logging(log_level: str = "INFO", log_file: str | None = None):
-    """Set up logging using ``--api-log-level`` and pytest ``--log-file``."""
-    level = getattr(logging, log_level.upper(), logging.INFO)
+def setup_logging(
+    log_level: str | int = "INFO", log_file: str | None = None
+):
+    """Set up logging using pytest ``--log-level`` and ``--log-file``."""
+    if isinstance(log_level, int):
+        level = log_level
+    else:
+        level = getattr(logging, str(log_level).upper(), logging.INFO)
     logger = logging.getLogger('pyrest')
     logger.setLevel(level)
     
