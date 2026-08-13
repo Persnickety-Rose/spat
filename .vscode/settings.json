@@ -1,9 +1,9 @@
 {
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/code/sample_tests"
+        "${workspaceFolder}/example"
     ],
     "python.testing.pytestArgs": [
-        "code"
+        "example"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,

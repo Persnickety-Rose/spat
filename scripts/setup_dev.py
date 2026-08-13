@@ -54,12 +54,12 @@ def run_tests():
     """Run the test suite."""
     print("Running test suite...")
 
-    if not run_command("uv run pytest code/sample_tests/ -v"):
+    if not run_command("uv run pytest example/ -v"):
         print("Tests failed")
         return False
 
     if not run_command(
-        "uv run pytest code/sample_tests/ --cov=pyrest --cov-report=html"
+        "uv run pytest example/ --cov=pyrest --cov-report=html"
     ):
         print("Coverage tests failed")
         return False

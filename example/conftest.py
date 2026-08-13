@@ -1,4 +1,4 @@
-"""PyTest configuration for sample tests."""
+"""PyTest configuration for example tests."""
 
 from apis.petstore_api_client import (
     authenticated_petstore_client,

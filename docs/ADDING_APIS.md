@@ -1,6 +1,6 @@
 # Adding a New API
 
-This guide explains how APIs are managed in **pytest-pyrest** and walks through adding a new API set step by step. The Petstore integration in `code/sample_tests/` is the reference implementation.
+This guide explains how APIs are managed in **pytest-pyrest** and walks through adding a new API set step by step. The Petstore integration in [`example/`](../example/) is the reference implementation. See [example/README.md](../example/README.md) for how to run it.
 
 ## How APIs Are Managed
 
@@ -21,9 +21,9 @@ requests library
 | Base HTTP | `code/pyrest/API_Call.py` | Low-level `API` class. Every call returns an `API` object with `status`, `content`, `json`, etc. |
 | Plugin | `code/pyrest/plugin.py` | Pytest plugin: loads env vars, provides `api_client` and `assert_api` fixtures |
 | Shared base | `code/pyrest/base_client.py` | `BaseAPIClient` with URL, header, auth, and SSL wiring for domain clients |
-| Domain client | `code/sample_tests/apis/` | Optional typed client with one method per endpoint (e.g. `petstore_api_client.py`) |
-| Tests | `code/sample_tests/test_*.py` | Pytest tests that use fixtures and assertion helpers |
-| Config | `code/sample_tests/env/*.csv` | Environment variables loaded at test collection time |
+| Domain client | `example/apis/` | Optional typed client with one method per endpoint (e.g. `petstore_api_client.py`) |
+| Tests | `example/test_*.py` | Pytest tests that use fixtures and assertion helpers |
+| Config | `example/env/*.csv` | Environment variables loaded at test collection time |
 
 ### Two Ways to Call an API
 
@@ -74,7 +74,7 @@ Example plan:
 
 Add credentials and URLs to your environment CSV file.
 
-**File:** `code/sample_tests/env/test-environment.csv`
+**File:** `example/env/test-environment.csv`
 
 Format is two columns per row, no header:
 
@@ -96,9 +96,9 @@ uv run pytest --env-file=path/to/my-environment.csv
 
 ### Step 3: Create the Domain Client
 
-Create a new file under `code/sample_tests/apis/`.
+Create a new file under `example/apis/`.
 
-**File:** `code/sample_tests/apis/acme_api_client.py`
+**File:** `example/apis/acme_api_client.py`
 
 Follow the Petstore client structure:
 
@@ -223,10 +223,10 @@ This mirrors the `petstore_client` / `authenticated_petstore_client` pattern in 
 
 Export your new fixtures so pytest discovers them project-wide.
 
-**File:** `code/sample_tests/conftest.py`
+**File:** `example/conftest.py`
 
 ```python
-"""PyTest configuration for sample tests."""
+"""PyTest configuration for example tests."""
 
 from apis.acme_api_client import acme_client, authenticated_acme_client
 from apis.petstore_api_client import (
@@ -250,7 +250,7 @@ Without this import, fixtures defined in `apis/` are not automatically available
 
 Create a test file alongside the existing examples.
 
-**File:** `code/sample_tests/test_acme_api.py`
+**File:** `example/test_acme_api.py`
 
 ```python
 """Tests for the Acme REST API."""
@@ -313,13 +313,13 @@ class TestAcmeAuthenticatedOperations:
 uv run pytest -m api
 
 # Run only your new test file
-uv run pytest code/sample_tests/test_acme_api.py
+uv run pytest example/test_acme_api.py
 
 # Run with a custom environment file
-uv run pytest --env-file=code/sample_tests/env/test-environment.csv code/sample_tests/test_acme_api.py
+uv run pytest --env-file=example/env/test-environment.csv example/test_acme_api.py
 
 # Verbose API logging
-uv run pytest --api-log-level=DEBUG code/sample_tests/test_acme_api.py -v
+uv run pytest --api-log-level=DEBUG example/test_acme_api.py -v
 ```
 
 ---
@@ -328,15 +328,15 @@ uv run pytest --api-log-level=DEBUG code/sample_tests/test_acme_api.py -v
 
 Use this when adding any new API:
 
-- [ ] **Env vars** added to `code/sample_tests/env/test-environment.csv` (or a custom CSV)
-- [ ] **Client file** created at `code/sample_tests/apis/<name>_api_client.py`
+- [ ] **Env vars** added to `example/env/test-environment.csv` (or a custom CSV)
+- [ ] **Client file** created at `example/apis/<name>_api_client.py`
   - [ ] Subclasses `BaseAPIClient`
   - [ ] Overrides `_auth_headers()` when using header-based auth
   - [ ] One public method per endpoint; each calls `api.CallAPI()` and returns `api`
   - [ ] Auth-guarded methods raise `ValueError` or fixtures use `pytest.skip`
   - [ ] `@pytest.fixture` definitions for unauthenticated and authenticated clients
 - [ ] **conftest.py** updated to import and export new fixtures
-- [ ] **Test file** created at `code/sample_tests/test_<name>_api.py`
+- [ ] **Test file** created at `example/test_<name>_api.py`
   - [ ] Tests marked with `@pytest.mark.api`
   - [ ] Uses `assert_api` for assertions
   - [ ] Test classes grouped by resource or concern
@@ -348,7 +348,7 @@ Use this when adding any new API:
 
 ```mermaid
 flowchart TB
-    subgraph tests [sample_tests/]
+    subgraph tests [example/]
         T[test_acme_api.py]
         C[conftest.py]
         CL[apis/acme_api_client.py]
@@ -382,9 +382,9 @@ flowchart TB
 
 | File | What it demonstrates |
 |------|---------------------|
-| `code/sample_tests/apis/petstore_api_client.py` | Full domain client with fixtures (`BaseAPIClient` subclass) |
-| `code/sample_tests/test_petstore_api.py` | Test organization by resource, auth vs public, workflows |
-| `code/sample_tests/util_petstore.py` | Shared models, payloads, and assertion helpers |
+| `example/apis/petstore_api_client.py` | Full domain client with fixtures (`BaseAPIClient` subclass) |
+| `example/test_petstore_api.py` | Test organization by resource, auth vs public, workflows |
+| `example/util_petstore.py` | Shared models, payloads, and assertion helpers |
 | `code/pyrest/plugin.py` | Plugin fixtures, env loading, `get_auth`, assertion helpers |
 | `code/pyrest/base_client.py` | Shared base for domain clients |
 | `code/pyrest/API_Call.py` | Base `API` class all clients delegate to |

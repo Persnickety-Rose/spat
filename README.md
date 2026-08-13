@@ -66,8 +66,8 @@ uv run pytest --env-file=my-environment.csv
 # Run with verbose output
 uv run pytest -v
 
-# Run specific test file
-uv run pytest code/sample_tests/test_petstore_api.py
+# Run the Petstore example
+uv run pytest example/
 ```
 
 ## Fixtures
@@ -110,7 +110,7 @@ def test_api_response(api_client, assert_api):
 
 ## Command Line Options
 
-- `--env-file`: Path to environment CSV file (default: code/sample_tests/env/test-environment.csv)
+- `--env-file`: Path to environment CSV file (this repo defaults to `example/env/test-environment.csv` via `pyproject.toml`)
 - `--vars-file`: Path to additional variables CSV file
 - `--api-log-level`: Logging level (DEBUG, INFO, WARNING, ERROR)
 - `--api-log-file`: Custom log file path
@@ -126,14 +126,15 @@ def test_api_response(api_client, assert_api):
 
 ```toml
 [tool.pytest.ini_options]
-testpaths = ["code/sample_tests"]
+testpaths = ["example"]
+addopts = "-v --tb=short --strict-markers -ra --env-file=example/env/test-environment.csv"
 markers = [
     "api: mark test as an API test",
     "slow: mark test as slow running",
 ]
 env = [
     "envURL=https://petstore.swagger.io/v2",
-    "pyTestEnv=code/sample_tests/env/test-environment.csv",
+    "pyTestEnv=example/env/test-environment.csv",
     "pyTestDebug=true",
 ]
 log_cli = true
@@ -155,7 +156,7 @@ Basic auth for the generic `api_client` is read via `get_auth()` from `API_USERN
 
 ## Examples
 
-See `code/sample_tests/test_petstore_api.py` and `code/sample_tests/apis/petstore_api_client.py` for examples. For adding a new API, see [docs/ADDING_APIS.md](docs/ADDING_APIS.md).
+See [`example/`](example/) for a complete Petstore walkthrough, and [example/README.md](example/README.md) for how to run it. For adding a new API, see [docs/ADDING_APIS.md](docs/ADDING_APIS.md).
 
 ## Contributing
 

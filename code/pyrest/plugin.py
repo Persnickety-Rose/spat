@@ -29,7 +29,7 @@ def pytest_addoption(parser):
     group.addoption(
         "--env-file",
         action="store",
-        default="code/sample_tests/env/test-environment.csv",
+        default=None,
         help="Path to environment CSV file"
     )
     group.addoption(
@@ -95,7 +95,7 @@ def load_environment_variables(config):
     vars_file = config.getoption("vars_file")
     
     # Load main environment file
-    if os.path.exists(env_file):
+    if env_file and os.path.exists(env_file):
         with open(env_file, 'r') as f:
             reader = csv.reader(f)
             for row in reader:
