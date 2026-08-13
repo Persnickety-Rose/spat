@@ -159,6 +159,21 @@ class TestPetstoreUsers:
         assert_api.status_code(response, 200)
         assert_json_types(response, ApiResponse)
 
+    def test_create_users_with_list(self, petstore_client, assert_api):
+        users = [user_payload(), user_payload()]
+        response = petstore_client.create_users_with_list(users)
+
+        assert_api.status_code(response, 200)
+        assert_api.has_content(response)
+        assert_json_types(response, ApiResponse)
+        assert_api.json_contains(response, "code", 200)
+        assert_api.json_contains(response, "message", "ok")
+
+        for user in users:
+            get_response = petstore_client.get_user(user["username"])
+            assert_api.status_code(get_response, 200)
+            assert_api.json_contains(get_response, "username", user["username"])
+
     def test_get_user_by_name(self, petstore_client, assert_api):
         user = user_payload()
         create_response = petstore_client.create_user(user)

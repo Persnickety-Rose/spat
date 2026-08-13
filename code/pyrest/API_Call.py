@@ -40,7 +40,7 @@ class API(object):
     def __init__(
         self,
         address: str,
-        data: Union[dict[str, Any], str] = "",
+        data: Union[dict[str, Any], list[Any], str] = "",
         header: Union[dict[str, str], str] = "",
         method: str = "GET",
         params: Union[dict[str, Any], str] = "",
@@ -124,7 +124,8 @@ class API(object):
             request_params["params"] = self.params
 
         if self.data != "":
-            if isinstance(self.data, dict):
+            # dict/list → JSON body; str → raw/form body (e.g. urlencoded)
+            if isinstance(self.data, (dict, list)):
                 request_params["json"] = self.data
             else:
                 request_params["data"] = self.data
