@@ -15,6 +15,7 @@ import json
 import logging
 import threading
 import time
+from datetime import datetime
 from typing import Any, Callable
 
 import pytest
@@ -39,8 +40,10 @@ FULL_SUITE_CASES = 60
 SUITE_TARGET_SECONDS = 10 * 60
 PER_TEST_SECONDS = SUITE_TARGET_SECONDS / FULL_SUITE_CASES
 HEARTBEAT_SECONDS = 3.0
+BANNER_WIDTH = 60
 
 _suite_started = time.monotonic()
+_tests_started = 0
 
 
 def _body_text(response: Any, limit: int = 180) -> str:
@@ -64,6 +67,18 @@ def _summarize(response: Any) -> str:
         return f"HTTP {status} {_body_text(response)}"
     text = _body_text(response)
     return f"HTTP {status} {text or '<empty body>'}"
+
+
+def _log_banner(number: int, total: int, name: str) -> None:
+    digits = max(2, len(str(total)))
+    prefix = f"#  {number:0{digits}d} - {datetime.now():%H:%M:%S} - "
+    room = BANNER_WIDTH - len(prefix) - 2
+    if len(name) > room:
+        name = name[: room - 3] + "..."
+    border = "#" * BANNER_WIDTH
+    logger.info(border)
+    logger.info("%s%s #", prefix, name.ljust(room))
+    logger.info(border)
 
 
 def _message(response: Any) -> str:
@@ -108,7 +123,7 @@ def _order(
 class PacedCase:
     """Logs one test, then heartbeats until its slice of the 10 minutes ends."""
 
-    def __init__(self, request: pytest.FixtureRequest):
+    def __init__(self, request: pytest.FixtureRequest, number: int):
         self.name = request.node.name
         doc = (getattr(request.function, "__doc__", None) or "").strip()
         self.purpose = doc.splitlines()[0] if doc else self.name
@@ -116,6 +131,7 @@ class PacedCase:
         self.deadline = self.started + PER_TEST_SECONDS
         self.closed = False
         self.last_summary = ""
+        _log_banner(number, len(request.session.items), self.name)
         logger.info("START %s", self.name)
         logger.info("  purpose: %s", self.purpose)
 
@@ -178,8 +194,9 @@ class PacedCase:
 
 @pytest.fixture(scope="module", autouse=True)
 def _long_suite_banner():
-    global _suite_started
+    global _suite_started, _tests_started
     _suite_started = time.monotonic()
+    _tests_started = 0
     logger.info(
         "Long Petstore suite starting: %d cases, %.1fs each, "
         "target %.0f minutes, heartbeat every %.0fs.",
@@ -199,7 +216,9 @@ def _long_suite_banner():
 
 @pytest.fixture
 def paced(request: pytest.FixtureRequest):
-    case = PacedCase(request)
+    global _tests_started
+    _tests_started += 1
+    case = PacedCase(request, _tests_started)
     yield case
     if not case.closed:
         logger.info(
