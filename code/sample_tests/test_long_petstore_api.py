@@ -7,6 +7,14 @@ every few seconds until its time slice ends.
 Negative cases follow the public demo, which is looser than the published
 Swagger spec: an unknown status filter returns an empty list, and a blank
 login still opens a session.
+
+Attributes:
+    FULL_SUITE_CASES (int): Number of collected tests the 10 minutes is
+        divided across.
+    SUITE_TARGET_SECONDS (int): Target length of a full run, in seconds.
+    PER_TEST_SECONDS (float): Time slice each test is paced to, in seconds.
+    HEARTBEAT_SECONDS (float): Seconds between heartbeat log lines.
+    BANNER_WIDTH (int): Width of the per-test banner box, in characters.
 """
 
 from __future__ import annotations
@@ -47,6 +55,16 @@ _tests_started = 0
 
 
 def _body_text(response: Any, limit: int = 180) -> str:
+    """Return the response body as one line of text, cut to a maximum length.
+
+    Args:
+        response: API call result from the PyRest client.
+        limit: Maximum number of characters to keep before adding "...".
+
+    Returns:
+        The decoded body with whitespace collapsed, or an empty string when
+        the response has no content.
+    """
     content = getattr(response, "content", b"") or b""
     if isinstance(content, bytes):
         text = content.decode("utf-8", errors="replace")
@@ -59,6 +77,15 @@ def _body_text(response: Any, limit: int = 180) -> str:
 
 
 def _summarize(response: Any) -> str:
+    """Build a short log line describing a response.
+
+    Args:
+        response: API call result from the PyRest client.
+
+    Returns:
+        The HTTP status followed by a short body. List bodies also include
+        their length.
+    """
     status = getattr(response, "status", "?")
     payload = getattr(response, "json", None)
     if isinstance(payload, list):
@@ -70,6 +97,13 @@ def _summarize(response: Any) -> str:
 
 
 def _log_banner(number: int, total: int, name: str) -> None:
+    """Log a boxed banner with the test number, start time, and test name.
+
+    Args:
+        number: Position of this test in the run, starting at 1.
+        total: Number of collected tests, used to zero-pad the number.
+        name: Test name. Names too long for the box end with "...".
+    """
     digits = max(2, len(str(total)))
     prefix = f"#  {number:0{digits}d} - {datetime.now():%H:%M:%S} - "
     room = BANNER_WIDTH - len(prefix) - 2
@@ -82,6 +116,15 @@ def _log_banner(number: int, total: int, name: str) -> None:
 
 
 def _message(response: Any) -> str:
+    """Return the ``message`` field of a JSON response.
+
+    Args:
+        response: API call result from the PyRest client.
+
+    Returns:
+        The ``message`` value when the body is a JSON object, otherwise the
+        body text.
+    """
     payload = getattr(response, "json", None)
     if isinstance(payload, dict):
         return str(payload.get("message", ""))
@@ -96,6 +139,21 @@ def _raw_call(
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
 ) -> Any:
+    """Send a request that the Petstore client has no method for.
+
+    Args:
+        client: Petstore client that supplies the base URL and default
+            headers.
+        endpoint: Path under the base URL, for example ``/pet/abc``.
+        method: HTTP method to send.
+        data: Request body. Dicts are sent as JSON; strings are sent as is.
+        params: Query string parameters.
+        headers: Headers added to, or replacing, the client defaults.
+
+    Returns:
+        The completed API call, with ``status``, ``content``, and ``json``
+        set.
+    """
     api = client._create_api_instance(
         endpoint=endpoint,
         method=method,
@@ -112,6 +170,17 @@ def _order(
     order_id: int | None = None,
     quantity: int = 1,
 ) -> dict[str, Any]:
+    """Build an order payload with a chosen status, id, and quantity.
+
+    Args:
+        status: Order status to send.
+        order_id: Order id to use. When omitted, a random id from 1 to 10 is
+            used.
+        quantity: Number of pets in the order.
+
+    Returns:
+        An order body ready for ``POST /store/order``.
+    """
     payload = order_payload()
     payload["status"] = status
     payload["quantity"] = quantity
@@ -121,9 +190,24 @@ def _order(
 
 
 class PacedCase:
-    """Logs one test, then heartbeats until its slice of the 10 minutes ends."""
+    """Logs one test, then heartbeats until its slice of the 10 minutes ends.
+
+    Attributes:
+        name: Test name as pytest reports it, including parameters.
+        purpose: First line of the test's docstring.
+        started: Monotonic time when the test started.
+        deadline: Monotonic time when the test's slice ends.
+        closed: True once ``finish`` has been called.
+        last_summary: Most recent response summary or result message.
+    """
 
     def __init__(self, request: pytest.FixtureRequest, number: int):
+        """Log the banner, start line, and purpose for a test.
+
+        Args:
+            request: Pytest request for the running test.
+            number: Position of this test in the run, starting at 1.
+        """
         self.name = request.node.name
         doc = (getattr(request.function, "__doc__", None) or "").strip()
         self.purpose = doc.splitlines()[0] if doc else self.name
@@ -136,10 +220,24 @@ class PacedCase:
         logger.info("  purpose: %s", self.purpose)
 
     def call(self, description: str, func: Callable[[], Any]) -> Any:
+        """Run one API call and log it.
+
+        A heartbeat is logged every few seconds while the call is still
+        waiting on the server.
+
+        Args:
+            description: Short label for the request, such as
+                ``GET /pet/123``.
+            func: Callable that sends the request and returns the response.
+
+        Returns:
+            The response returned by ``func``.
+        """
         logger.info("  CALL %s", description)
         stop = threading.Event()
 
         def pulse() -> None:
+            """Log a heartbeat every few seconds until ``stop`` is set."""
             beat = 0
             while not stop.wait(HEARTBEAT_SECONDS):
                 beat += 1
@@ -166,6 +264,11 @@ class PacedCase:
         return response
 
     def finish(self, summary: str) -> None:
+        """Log a pass, then heartbeat until the test's time slice ends.
+
+        Args:
+            summary: One-line description of what the test confirmed.
+        """
         self.closed = True
         self.last_summary = summary
         logger.info("  RESULT PASS %s — %s", self.name, summary)
@@ -194,6 +297,11 @@ class PacedCase:
 
 @pytest.fixture(scope="module", autouse=True)
 def _long_suite_banner():
+    """Log the suite start and finish, and reset the test counter.
+
+    Yields:
+        None. The suite's tests run while this fixture is suspended.
+    """
     global _suite_started, _tests_started
     _suite_started = time.monotonic()
     _tests_started = 0
@@ -216,6 +324,14 @@ def _long_suite_banner():
 
 @pytest.fixture
 def paced(request: pytest.FixtureRequest):
+    """Number the test, log its start, and log a failure if it never finishes.
+
+    Args:
+        request: Pytest request for the running test.
+
+    Yields:
+        PacedCase: Logger and pacer for the running test.
+    """
     global _tests_started
     _tests_started += 1
     case = PacedCase(request, _tests_started)
@@ -233,7 +349,14 @@ class TestLongPetstorePets:
 
     @pytest.mark.parametrize("status", ["available", "pending", "sold"])
     def test_add_pet_for_each_status(self, status, paced, petstore_client, assert_api):
-        """POST /pet echoes the pet for each documented status."""
+        """POST /pet echoes the pet for each documented status.
+
+        Args:
+            status: Pet status sent in the new pet.
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         pet = pet_payload(status=status)
         response = paced.call(
             f"POST /pet name={pet['name']} status={status}",
@@ -248,7 +371,13 @@ class TestLongPetstorePets:
         paced.finish(f"created pet {response.json['id']} with status {status}")
 
     def test_get_pet_by_id(self, paced, petstore_client, assert_api):
-        """Create a pet, then GET /pet/{petId} returns that same pet."""
+        """Create a pet, then GET /pet/{petId} returns that same pet.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         pet = pet_payload()
         created = paced.call(
             f"POST /pet name={pet['name']}",
@@ -268,7 +397,13 @@ class TestLongPetstorePets:
         paced.finish(f"GET /pet/{pet_id} returned {fetched.json['name']}")
 
     def test_update_pet(self, paced, petstore_client, assert_api):
-        """PUT /pet changes the name and moves the pet to sold."""
+        """PUT /pet changes the name and moves the pet to sold.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         pet = pet_payload(status="available")
         created = paced.call(
             f"POST /pet name={pet['name']}",
@@ -294,7 +429,13 @@ class TestLongPetstorePets:
         paced.finish(f"updated pet {pet_id} to sold")
 
     def test_update_pet_with_form(self, paced, petstore_client, assert_api):
-        """POST /pet/{petId} form data updates the name and status."""
+        """POST /pet/{petId} form data updates the name and status.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         pet = pet_payload()
         created = paced.call(
             f"POST /pet name={pet['name']}",
@@ -315,7 +456,13 @@ class TestLongPetstorePets:
         paced.finish(f"form update accepted for pet {pet_id}")
 
     def test_delete_pet(self, paced, petstore_client, assert_api):
-        """DELETE /pet/{petId} removes the pet; a later GET is 404."""
+        """DELETE /pet/{petId} removes the pet; a later GET is 404.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         pet = pet_payload()
         created = paced.call(
             f"POST /pet name={pet['name']}",
@@ -340,7 +487,14 @@ class TestLongPetstorePets:
 
     @pytest.mark.parametrize("status", ["available", "pending", "sold"])
     def test_find_pets_by_each_status(self, status, paced, petstore_client, assert_api):
-        """GET /pet/findByStatus returns a JSON list for each real status."""
+        """GET /pet/findByStatus returns a JSON list for each real status.
+
+        Args:
+            status: Pet status used as the search filter.
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             f"GET /pet/findByStatus?status={status}",
             lambda: petstore_client.find_pets_by_status(status=status),
@@ -351,7 +505,13 @@ class TestLongPetstorePets:
         paced.finish(f"status {status} returned {len(response.json)} pets")
 
     def test_find_pets_by_multiple_statuses(self, paced, petstore_client, assert_api):
-        """GET /pet/findByStatus accepts available and pending together."""
+        """GET /pet/findByStatus accepts available and pending together.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /pet/findByStatus?status=available&status=pending",
             lambda: _raw_call(
@@ -365,7 +525,13 @@ class TestLongPetstorePets:
         paced.finish(f"two statuses returned {len(response.json)} pets")
 
     def test_find_pets_by_tag(self, paced, petstore_client, assert_api):
-        """GET /pet/findByTags?tags=tag1 returns a list (deprecated route)."""
+        """GET /pet/findByTags?tags=tag1 returns a list (deprecated route).
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /pet/findByTags?tags=tag1",
             lambda: _raw_call(
@@ -377,7 +543,13 @@ class TestLongPetstorePets:
         paced.finish(f"tag1 returned {len(response.json)} pets")
 
     def test_pet_lifecycle(self, paced, petstore_client, assert_api):
-        """Walk one pet through create, read, update, form update, and delete."""
+        """Walk one pet through create, read, update, form update, and delete.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         pet = pet_payload(status="pending")
         created = paced.call(
             f"POST /pet name={pet['name']}",
@@ -416,7 +588,14 @@ class TestLongPetstorePets:
 
     @pytest.mark.parametrize("status", ["nope", "flying", "not-a-real-status"])
     def test_unknown_status_is_empty(self, status, paced, petstore_client, assert_api):
-        """An unknown status filter returns HTTP 200 and an empty list."""
+        """An unknown status filter returns HTTP 200 and an empty list.
+
+        Args:
+            status: Status value that is not a real pet status.
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             f"GET /pet/findByStatus?status={status}",
             lambda: petstore_client.find_pets_by_status(status=status),
@@ -426,7 +605,13 @@ class TestLongPetstorePets:
         paced.finish(f"status {status!r} returned an empty list")
 
     def test_find_pets_without_status(self, paced, petstore_client, assert_api):
-        """GET /pet/findByStatus with no query returns an empty list."""
+        """GET /pet/findByStatus with no query returns an empty list.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /pet/findByStatus",
             lambda: _raw_call(petstore_client, "/pet/findByStatus"),
@@ -437,7 +622,14 @@ class TestLongPetstorePets:
 
     @pytest.mark.parametrize("pet_id", [999999999, 0, -1])
     def test_get_missing_pet(self, pet_id, paced, petstore_client, assert_api):
-        """GET /pet/{petId} is 404 when that id is not in the store."""
+        """GET /pet/{petId} is 404 when that id is not in the store.
+
+        Args:
+            pet_id: Pet id that does not exist.
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             f"GET /pet/{pet_id}",
             lambda: petstore_client.get_pet(pet_id),
@@ -447,7 +639,13 @@ class TestLongPetstorePets:
         paced.finish(f"pet id {pet_id} correctly returned 404")
 
     def test_get_pet_non_numeric_id(self, paced, petstore_client, assert_api):
-        """GET /pet/abc is 404 and reports that the id is not a number."""
+        """GET /pet/abc is 404 and reports that the id is not a number.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /pet/abc",
             lambda: _raw_call(petstore_client, "/pet/abc"),
@@ -457,7 +655,13 @@ class TestLongPetstorePets:
         paced.finish("non-numeric pet id was rejected")
 
     def test_delete_missing_pet(self, paced, petstore_client, assert_api):
-        """DELETE /pet/{petId} is 404 when the pet does not exist."""
+        """DELETE /pet/{petId} is 404 when the pet does not exist.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "DELETE /pet/999999999",
             lambda: petstore_client.delete_pet(999999999),
@@ -466,7 +670,13 @@ class TestLongPetstorePets:
         paced.finish("delete of a missing pet returned 404")
 
     def test_delete_pet_non_numeric_id(self, paced, petstore_client, assert_api):
-        """DELETE /pet/abc is 404 and reports that the id is not a number."""
+        """DELETE /pet/abc is 404 and reports that the id is not a number.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "DELETE /pet/abc",
             lambda: _raw_call(petstore_client, "/pet/abc", method="DELETE"),
@@ -476,7 +686,13 @@ class TestLongPetstorePets:
         paced.finish("non-numeric delete was rejected")
 
     def test_add_pet_malformed_json(self, paced, petstore_client, assert_api):
-        """POST /pet with a body that is not JSON returns 400 bad input."""
+        """POST /pet with a body that is not JSON returns 400 bad input.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "POST /pet body=not-json",
             lambda: _raw_call(petstore_client, "/pet", method="POST", data="not-json"),
@@ -486,7 +702,13 @@ class TestLongPetstorePets:
         paced.finish("malformed JSON was rejected with 400")
 
     def test_add_pet_xml_body(self, paced, petstore_client, assert_api):
-        """POST /pet with an unexpected XML element returns 400."""
+        """POST /pet with an unexpected XML element returns 400.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "POST /pet Content-Type=application/xml body=<pet/>",
             lambda: _raw_call(
@@ -506,7 +728,13 @@ class TestLongPetstoreStore:
     """Inventory and orders. Documented GET ids are 1 through 10."""
 
     def test_inventory(self, paced, petstore_client, assert_api):
-        """GET /store/inventory returns a map of status names to counts."""
+        """GET /store/inventory returns a map of status names to counts.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /store/inventory",
             lambda: petstore_client.get_inventory(),
@@ -522,7 +750,14 @@ class TestLongPetstoreStore:
     def test_place_order_for_each_status(
         self, status, paced, petstore_client, assert_api
     ):
-        """POST /store/order accepts each documented order status."""
+        """POST /store/order accepts each documented order status.
+
+        Args:
+            status: Order status sent in the new order.
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         order = _order(status=status, quantity=2)
         response = paced.call(
             f"POST /store/order id={order['id']} status={status}",
@@ -539,7 +774,14 @@ class TestLongPetstoreStore:
     def test_get_order_in_valid_id_range(
         self, order_id, paced, petstore_client, assert_api
     ):
-        """GET /store/order/{orderId} succeeds for ids 1 through 10."""
+        """GET /store/order/{orderId} succeeds for ids 1 through 10.
+
+        Args:
+            order_id: Order id inside the documented 1-10 range.
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             f"GET /store/order/{order_id}",
             lambda: petstore_client.get_order(order_id),
@@ -554,7 +796,13 @@ class TestLongPetstoreStore:
         )
 
     def test_place_order_then_get(self, paced, petstore_client, assert_api):
-        """An order posted with id 6 is the order returned by GET."""
+        """An order posted with id 6 is the order returned by GET.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         order = _order(status="approved", order_id=6, quantity=4)
         created = paced.call(
             "POST /store/order id=6 status=approved quantity=4",
@@ -576,7 +824,14 @@ class TestLongPetstoreStore:
 
     @pytest.mark.parametrize("order_id", [0, 11, -5, 99999])
     def test_get_order_not_found(self, order_id, paced, petstore_client, assert_api):
-        """GET /store/order/{orderId} is 404 outside the documented 1-10 range."""
+        """GET /store/order/{orderId} is 404 outside the documented 1-10 range.
+
+        Args:
+            order_id: Order id outside the documented 1-10 range.
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             f"GET /store/order/{order_id}",
             lambda: petstore_client.get_order(order_id),
@@ -586,7 +841,13 @@ class TestLongPetstoreStore:
         paced.finish(f"order id {order_id} correctly returned 404")
 
     def test_get_order_non_numeric_id(self, paced, petstore_client, assert_api):
-        """GET /store/order/abc is 404 and reports that the id is not a number."""
+        """GET /store/order/abc is 404 and reports that the id is not a number.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /store/order/abc",
             lambda: _raw_call(petstore_client, "/store/order/abc"),
@@ -596,7 +857,13 @@ class TestLongPetstoreStore:
         paced.finish("non-numeric order id was rejected")
 
     def test_place_order_bad_id_type(self, paced, petstore_client, assert_api):
-        """POST /store/order with a non-numeric id returns 500 on this demo."""
+        """POST /store/order with a non-numeric id returns 500 on this demo.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         bad_order = {
             "id": "nope",
             "petId": 1,
@@ -612,7 +879,13 @@ class TestLongPetstoreStore:
         paced.finish("non-numeric order id returned 500")
 
     def test_delete_missing_order(self, paced, petstore_client, assert_api):
-        """DELETE /store/order/11 is 404 because that id is not stored."""
+        """DELETE /store/order/11 is 404 because that id is not stored.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "DELETE /store/order/11",
             lambda: petstore_client.delete_order(11),
@@ -622,7 +895,13 @@ class TestLongPetstoreStore:
         paced.finish("delete of missing order 11 returned 404")
 
     def test_delete_order_non_numeric_id(self, paced, petstore_client, assert_api):
-        """DELETE /store/order/abc is 404 and reports that the id is not a number."""
+        """DELETE /store/order/abc is 404 and reports that the id is not a number.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "DELETE /store/order/abc",
             lambda: _raw_call(petstore_client, "/store/order/abc", method="DELETE"),
@@ -636,7 +915,13 @@ class TestLongPetstoreUsers:
     """User create, read, update, login, logout, and delete."""
 
     def test_create_user(self, paced, petstore_client, assert_api):
-        """POST /user acknowledges a new user."""
+        """POST /user acknowledges a new user.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         user = user_payload()
         response = paced.call(
             f"POST /user username={user['username']}",
@@ -647,7 +932,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"created user {user['username']}")
 
     def test_get_user_by_name(self, paced, petstore_client, assert_api):
-        """GET /user/{username} returns the user that was just created."""
+        """GET /user/{username} returns the user that was just created.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         user = user_payload()
         created = paced.call(
             f"POST /user username={user['username']}",
@@ -666,7 +957,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"fetched user {user['username']}")
 
     def test_update_user(self, paced, petstore_client, assert_api):
-        """PUT /user/{username} changes the first name seen on the next GET."""
+        """PUT /user/{username} changes the first name seen on the next GET.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         user = user_payload()
         created = paced.call(
             f"POST /user username={user['username']}",
@@ -691,7 +988,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"updated user {user['username']}")
 
     def test_login_user(self, paced, petstore_client, assert_api):
-        """GET /user/login returns a session message for a created user."""
+        """GET /user/login returns a session message for a created user.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         user = user_payload()
         created = paced.call(
             f"POST /user username={user['username']}",
@@ -709,7 +1012,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"login session opened for {user['username']}")
 
     def test_logout_user(self, paced, petstore_client, assert_api):
-        """GET /user/logout returns the demo's ok message."""
+        """GET /user/logout returns the demo's ok message.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /user/logout",
             lambda: petstore_client.logout_user(),
@@ -720,7 +1029,13 @@ class TestLongPetstoreUsers:
         paced.finish("logout returned ok")
 
     def test_delete_user(self, paced, petstore_client, assert_api):
-        """DELETE /user/{username} removes the user; the next GET is 404."""
+        """DELETE /user/{username} removes the user; the next GET is 404.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         user = user_payload()
         created = paced.call(
             f"POST /user username={user['username']}",
@@ -743,7 +1058,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"user {user['username']} deleted and now 404")
 
     def test_create_users_with_list(self, paced, petstore_client, assert_api):
-        """POST /user/createWithList accepts an array of users."""
+        """POST /user/createWithList accepts an array of users.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         users = [user_payload(), user_payload()]
         response = paced.call(
             "POST /user/createWithList count=2",
@@ -762,7 +1083,13 @@ class TestLongPetstoreUsers:
         )
 
     def test_create_users_with_array(self, paced, petstore_client, assert_api):
-        """POST /user/createWithArray accepts an array of users."""
+        """POST /user/createWithArray accepts an array of users.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         users = [user_payload(), user_payload()]
         response = paced.call(
             "POST /user/createWithArray count=2",
@@ -781,7 +1108,13 @@ class TestLongPetstoreUsers:
         )
 
     def test_user_lifecycle(self, paced, petstore_client, assert_api):
-        """Create a user, update them, log in, then delete them."""
+        """Create a user, update them, log in, then delete them.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         user = user_payload()
         created = paced.call(
             f"POST /user username={user['username']}",
@@ -811,7 +1144,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"lifecycle finished for {user['username']}")
 
     def test_get_unknown_user(self, paced, petstore_client, assert_api):
-        """GET /user/{username} is 404 when that username was never created."""
+        """GET /user/{username} is 404 when that username was never created.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         username = "missing-user-long-suite"
         response = paced.call(
             f"GET /user/{username}",
@@ -822,7 +1161,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"{username} correctly returned 404")
 
     def test_delete_unknown_user(self, paced, petstore_client, assert_api):
-        """DELETE /user/{username} is 404 when that username does not exist."""
+        """DELETE /user/{username} is 404 when that username does not exist.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         username = "missing-user-long-suite-delete"
         response = paced.call(
             f"DELETE /user/{username}",
@@ -832,7 +1177,13 @@ class TestLongPetstoreUsers:
         paced.finish(f"delete of {username} returned 404")
 
     def test_login_blank_credentials(self, paced, petstore_client, assert_api):
-        """The public demo still opens a session when username and password are blank."""
+        """A blank username and password still opens a session on the public demo.
+
+        Args:
+            paced: Logs the test and paces it to its time slice.
+            petstore_client: Unauthenticated Petstore API client.
+            assert_api: Assertion helpers for API responses.
+        """
         response = paced.call(
             "GET /user/login username= password=",
             lambda: petstore_client.login_user("", ""),
