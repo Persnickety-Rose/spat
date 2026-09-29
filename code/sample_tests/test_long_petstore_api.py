@@ -23,8 +23,9 @@ import json
 import logging
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
@@ -105,7 +106,7 @@ def _log_banner(number: int, total: int, name: str) -> None:
         name: Test name. Names too long for the box end with "...".
     """
     digits = max(2, len(str(total)))
-    prefix = f"#  {number:0{digits}d} - {datetime.now():%H:%M:%S} - "
+    prefix = f"#  {number:0{digits}d} - {datetime.now().astimezone():%H:%M:%S} - "
     room = BANNER_WIDTH - len(prefix) - 2
     if len(name) > room:
         name = name[: room - 3] + "..."

@@ -66,6 +66,9 @@ disallow_untyped_defs = true
 [tool.basedpyright]
 extraPaths = ["code/sample_tests"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["util_petstore"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-v --tb=short --strict-markers -ra"
